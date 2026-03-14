@@ -472,13 +472,34 @@ These defaults are neutral, modern, and broadly professional. They are overridde
 
 ---
 
+## First-Time Setup Gate
+
+### Setup Status Tracking
+- status_file: config/.setup-status.json
+- first_run_check: true
+- re_trigger_phrases: ["configure gemini", "setup gemini", "reconfigure article engine"]
+- setup_gate_position: Step 0 (before pipeline)
+
+### Setup Behavior
+- on_first_run: prompt user for Gemini MCP configuration
+- on_skip: proceed with fallback mode (web search + image placeholders)
+- on_configure: write Gemini MCP to ~/.claude.json, require restart
+- on_re_trigger: re-run setup regardless of existing status
+- setup_file_location: .claude/plugins/article-engine/config/.setup-status.json
+
+---
+
 ## Public Usage Guide
 
 ### For users installing this skill in their own project:
 
+**First-time setup:** The first time you use the article engine, it will guide you through configuring Gemini MCP interactively. You can provide your API key or skip to use fallback mode.
+
 **To enable Gemini image generation:**
 
-1. **Easiest method:** Configure a Gemini MCP server in your project's `.mcp.json`:
+1. **Easiest method (automatic):** Just run the article engine — it will prompt you on first use.
+
+2. **Manual method:** Configure a Gemini MCP server in your project's `.mcp.json`:
    ```json
    {
      "mcpServers": {

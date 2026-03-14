@@ -4,7 +4,8 @@ description: >
   Use when the user wants to generate a blog article, create article content,
   write an article page, or edit a section of an existing generated article.
   Trigger phrases: "generate an article", "write an article", "create an article about",
-  "article engine", "new article", "write a blog post", "edit section", "update section".
+  "article engine", "new article", "write a blog post", "edit section", "update section",
+  "configure gemini", "setup gemini", "reconfigure article engine".
   Also triggers when user provides a topic keyword or phrase with clear intent to
   produce article content, or when a generated edit prompt targets a specific section.
   Works with ANY topic on ANY website. Automatically adapts to the current project's
@@ -67,21 +68,22 @@ If the input contains `SECTION_EDIT:` or references a `data-section-id`, enter S
 ## PIPELINE OVERVIEW
 
 ```
-Input → Domain Lock → Detect Shell → Detect Components → Select Adaptation Mode →
-Analyze Presentation → Extract Writing Style → Research → Generate Ideas →
-User Picks → Architecture + TOC → Image Plan → Gemini Capability Check →
-Generate 4-6 Images → Image Placement → Sidebar TOC → Write Article →
-Attach Section Metadata → Integrate Section Edit UI → Build Edit Prompt Logic →
-Visual Trust Moderation → Final Consistency Pass → Deliver HTML
+First-Time Setup Gate → Input → Domain Lock → Detect Shell → Detect Components →
+Select Adaptation Mode → Analyze Presentation → Extract Writing Style → Research →
+Generate Ideas → User Picks → Architecture + TOC → Image Plan →
+Gemini Capability Check → Generate 4-6 Images → Image Placement → Sidebar TOC →
+Write Article → Attach Section Metadata → Integrate Section Edit UI →
+Build Edit Prompt Logic → Visual Trust Moderation → Final Consistency Pass → Deliver HTML
 ```
 
-22 steps, grouped into agent dispatches. Step 13 (Gemini Capability Check) is new for portability.
+23 steps, grouped into agent dispatches. Step 0 (First-Time Setup Gate) runs once per project. Step 13 (Gemini Capability Check) is for portability.
 
 ---
 
 ## INTERNAL MODULES
 
 ### Existing Modules
+- First-Time Setup Gate
 - Input Normalizer
 - Topic Domain Classifier
 - Current Project Shell Detector
@@ -146,6 +148,136 @@ One-time ingestion from `article-components.html`. The registry is now self-cont
 2. Draft Writer reads the selected blueprints and generates HTML structure from them
 3. Runtime Visual Adapter applies the active project's design tokens to the generated HTML
 4. Result: article uses proven structural patterns with project-appropriate visual styling
+
+---
+
+## STEP 0 — FIRST-TIME SETUP GATE (inline, runs once per project)
+
+Before running the pipeline, check if this is the first time the plugin is being used in this project. If so, guide the user through Gemini MCP configuration for the best experience.
+
+**Detection:**
+Check if the file `config/.setup-status.json` exists inside the plugin directory (`.claude/plugins/article-engine/config/.setup-status.json`).
+
+- If the file **exists** and contains `"setup_completed": true` → skip this step, proceed to Step 1.
+- If the file **does not exist** or contains `"setup_completed": false` → this is a first-time run. Execute the setup gate.
+
+**First-Time Setup Flow:**
+
+Present the following to the user:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║            ARTICLE ENGINE — First-Time Setup                ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  Welcome! This is your first time using the Article Engine.  ║
+║                                                              ║
+║  For the BEST results, this plugin uses Gemini MCP to:       ║
+║    • Research topics with deep multi-round analysis          ║
+║    • Generate 4-6 professional images per article            ║
+║    • Enhance content quality with AI-powered insights        ║
+║                                                              ║
+║  To enable these features, you need a Gemini API key.        ║
+║  Get one free at: https://aistudio.google.com/apikey         ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+Would you like to configure Gemini MCP now?
+
+  1. YES — I have a Gemini API key (or I'll get one now)
+  2. SKIP — Proceed without Gemini (articles will use web search
+     for research and image placeholders instead of generated images)
+```
+
+**WAIT for user response.**
+
+**If user chooses YES (option 1):**
+
+1. Ask the user for their Gemini API key:
+   ```
+   Please paste your Gemini API key:
+   ```
+2. Once the user provides the key, check if `~/.claude.json` exists.
+3. If it exists, read it and merge the Gemini MCP server config into `mcpServers`:
+   ```json
+   {
+     "mcpServers": {
+       "gemini": {
+         "command": "npx",
+         "args": ["-y", "@anthropic/gemini-mcp-server"],
+         "env": { "GEMINI_API_KEY": "<USER_PROVIDED_KEY>" }
+       }
+     }
+   }
+   ```
+4. If it does not exist, create it with the above structure.
+5. Inform the user:
+   ```
+   ✓ Gemini MCP configured in ~/.claude.json
+
+   IMPORTANT: You need to restart Claude Code for the Gemini MCP
+   server to become available. After restarting, run your article
+   request again and Gemini will be fully active.
+
+   Alternatively, if you want to proceed NOW without restarting,
+   the article will generate with web search and image placeholders.
+   You can regenerate images after restarting.
+   ```
+6. Ask: `Would you like to restart now, or proceed without Gemini for this session?`
+   - If restart → save setup status and tell user to restart and re-run
+   - If proceed → continue to Step 1 (Gemini won't be available until restart)
+7. Write the setup status file.
+
+**If user chooses SKIP (option 2):**
+
+1. Inform the user:
+   ```
+   ✓ Skipping Gemini setup.
+
+   The article engine will still work — it will use web search for
+   research and generate image placeholders with exportable prompts.
+
+   You can configure Gemini anytime later by running:
+     bash .claude/plugins/article-engine/setup.sh
+   Or just say "configure gemini" in any future session.
+   ```
+2. Write the setup status file with `gemini_configured: false`.
+
+**Setup Status File (`config/.setup-status.json`):**
+
+After either path, write this file:
+
+```json
+{
+  "setup_completed": true,
+  "setup_date": "<ISO_DATE>",
+  "gemini_configured": true | false,
+  "gemini_setup_method": "interactive" | "skipped",
+  "notes": "<any relevant notes>"
+}
+```
+
+**Re-triggering Setup:**
+
+The user can re-trigger setup at any time by:
+- Saying "configure gemini" or "setup gemini" or "reconfigure article engine"
+- Manually deleting `config/.setup-status.json`
+
+When re-triggered, run the same flow above regardless of existing setup status.
+
+**Output after setup gate completes:**
+
+```
+SETUP STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Gemini MCP: [configured / skipped]
+Image generation: [available after restart / fallback mode]
+Research: [Gemini + web search / web search only]
+Status: ready to proceed
+━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Proceed to Step 1.
 
 ---
 
