@@ -12,8 +12,8 @@
     {
       "name": "article-engine",
       "source": {
-        "source": "github",
-        "repo": "emrankelany-oss/article-engine"
+        "type": "github",
+        "url": "https://github.com/emrankelany-oss/article-engine"
       },
       "description": "Portable, project-agnostic article generation engine. Generates full standalone HTML article pages from minimal input — with multi-round research, 4-6 AI-generated images, section-level editing, sidebar TOC, trust layer, and automatic design system adaptation. Works on any website.",
       "version": "4.5.0",
