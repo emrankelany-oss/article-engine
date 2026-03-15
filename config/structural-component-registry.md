@@ -1,7 +1,6 @@
 # Structural Component Registry v1.0
 
 Ingested from: `article-components.html` (one-time extraction)
-Source project: axiomxgroup.com blog components
 Ingestion date: 2026-03-11
 
 **This registry stores STRUCTURE ONLY — no brand colors, fonts, or visual identity.**
@@ -298,20 +297,33 @@ category: data-visualization
 article_role: Present structured data with sortable/scannable rows
 
 structural_pattern:
-  - identical structure to bp-comparison-table
-  - optimized for raw data display rather than comparison
-  - column headers with muted background
-  - alternating or bordered rows
-  - optional highlight cells for key values
+  - section heading (h2) with optional context paragraph
+  - full-width table:
+    - thead with column headers (muted background, bordered bottom)
+    - tbody with data rows (alternating or bordered, hover highlight)
+    - optional highlight cells for key values
 
 slot_definitions:
-  - (same as bp-comparison-table)
+  - SECTION_HEADING: h2 section title
+  - CONTEXT_TEXT: optional paragraph explaining the data
+  - TABLE_HEADERS[]: column header labels
+  - TABLE_ROWS[][]: rows of cell values
+  - HIGHLIGHT_CELLS: which cells deserve emphasis
 
 hierarchy:
-  section > [h2? + table > thead + tbody]
+  section > [h2? + p? + table > thead + tbody]
+  thead > tr > th*N
+  tbody > tr*N > td*N
 
-Note: Structurally identical to bp-comparison-table.
-Differentiated by article_role and content intent.
+required_elements: [TABLE_HEADERS, at least 2 TABLE_ROWS]
+optional_elements: [SECTION_HEADING, CONTEXT_TEXT, HIGHLIGHT_CELLS]
+
+responsive_behavior:
+  - desktop: full table visible
+  - mobile: horizontal scroll or stacked layout
+
+image_compatibility: none
+sidebar_compatibility: works in main column
 ```
 
 ### BP-06: Before/After Comparison

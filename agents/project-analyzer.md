@@ -120,11 +120,11 @@ ELSE IF shell detected AND component availability is moderate+:
   → Use detected shell and available components
 
 ELSE IF shell detected AND component availability is sparse/none:
-  → MODE: ADAPTED
+  → MODE: REGISTRY
   → Use detected shell, generate/adapt missing components
 
 ELSE IF no shell AND component availability is moderate+:
-  → MODE: ADAPTED
+  → MODE: REGISTRY
   → Generate shell from project patterns, use available components
 
 ELSE:
@@ -135,21 +135,21 @@ ELSE:
 **Output:**
 
 ```
-ADAPTATION MODE: [EXISTING / ADAPTED / FALLBACK]
+ADAPTATION MODE: [EXISTING / REGISTRY / FALLBACK]
 Reasoning: [1-2 sentences explaining why this mode was selected]
 Shell source: [file path or "fallback template"]
-Component source: [file path or "adapted from project" or "fallback generation"]
+Component source: [file path or "internal registry" or "fallback generation"]
 ```
 
 ---
 
 ## Substep 4: Fallback Planning
 
-**Goal:** If adaptation mode is ADAPTED or FALLBACK, describe what needs to be generated.
+**Goal:** If adaptation mode is REGISTRY or FALLBACK, describe what needs to be generated.
 
 **Skip this substep if mode is EXISTING.**
 
-For ADAPTED mode, list:
+For REGISTRY mode, list:
 - Which components need to be generated (by structural type)
 - Which shell elements need adaptation
 - Design tokens to carry over from the project
@@ -275,12 +275,12 @@ PROJECT INTELLIGENCE REPORT
   [comp-XXX: {type, layout, complexity, best_for}]
 
 3. ADAPTATION MODE
-- mode: [EXISTING / ADAPTED / FALLBACK]
+- mode: [EXISTING / REGISTRY / FALLBACK]
 - reasoning: [explanation]
 - shell_source: [path or "fallback"]
-- component_source: [path or "adapted" or "fallback"]
+- component_source: [path or "internal registry" or "fallback"]
 
-4. FALLBACK PLAN (if mode is ADAPTED or FALLBACK)
+4. FALLBACK PLAN (if mode is REGISTRY or FALLBACK)
 - shell_needs: [list]
 - component_needs: [list]
 - design_approach: [description]

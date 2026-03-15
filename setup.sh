@@ -42,46 +42,38 @@ if [ -z "$API_KEY" ]; then
   exit 1
 fi
 
-# Add to ~/.claude.json
-if [ -f "$CLAUDE_JSON" ]; then
-  # File exists — merge mcpServers
-  node -e "
-    const fs = require('fs');
-    const d = JSON.parse(fs.readFileSync('$CLAUDE_JSON', 'utf8'));
-    d.mcpServers = d.mcpServers || {};
-    if (d.mcpServers.gemini) {
-      console.log('  ⚠ Gemini MCP already configured — updating API key');
+# Add to ~/.claude.json — pass key via env to avoid shell injection
+GEMINI_KEY="$API_KEY" CLAUDE_CFG="$CLAUDE_JSON" node -e '
+  const fs = require("fs");
+  const key = process.env.GEMINI_KEY;
+  const cfgPath = process.env.CLAUDE_CFG;
+  let d = {};
+  if (fs.existsSync(cfgPath)) {
+    d = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    if (d.mcpServers && d.mcpServers.gemini) {
+      console.log("  ⚠ Gemini MCP already configured — updating API key");
     }
-    d.mcpServers.gemini = {
-      command: 'npx',
-      args: ['-y', '@rlabs-inc/gemini-mcp'],
-      env: { GEMINI_API_KEY: '$API_KEY' }
-    };
-    fs.writeFileSync('$CLAUDE_JSON', JSON.stringify(d, null, 2));
-    console.log('  ✓ Gemini MCP added to ~/.claude.json');
-  "
-else
-  # File doesn't exist — create it
-  node -e "
-    const fs = require('fs');
-    const d = {
-      mcpServers: {
-        gemini: {
-          command: 'npx',
-          args: ['-y', '@rlabs-inc/gemini-mcp'],
-          env: { GEMINI_API_KEY: '$API_KEY' }
-        }
-      }
-    };
-    fs.writeFileSync('$CLAUDE_JSON', JSON.stringify(d, null, 2));
-    console.log('  ✓ Created ~/.claude.json with Gemini MCP');
-  "
-fi
+  }
+  d.mcpServers = d.mcpServers || {};
+  d.mcpServers.gemini = {
+    command: "npx",
+    args: ["-y", "@rlabs-inc/gemini-mcp"],
+    env: { GEMINI_API_KEY: key }
+  };
+  fs.writeFileSync(cfgPath, JSON.stringify(d, null, 2));
+  console.log(fs.existsSync(cfgPath)
+    ? "  ✓ Gemini MCP added to ~/.claude.json"
+    : "  ✓ Created ~/.claude.json with Gemini MCP");
+'
 
 # Pre-download the package
 echo "  ↓ Pre-downloading Gemini MCP package..."
-npx -y @rlabs-inc/gemini-mcp --help &> /dev/null || true
-echo "  ✓ Package cached"
+if npx -y @rlabs-inc/gemini-mcp --help &> /dev/null; then
+  echo "  ✓ Package cached"
+else
+  echo "  ⚠ Package pre-download failed. Gemini MCP will download on first use."
+  echo "    If this persists, check your internet connection or npm registry access."
+fi
 
 echo ""
 echo "  ══════════════════════════════════════════"

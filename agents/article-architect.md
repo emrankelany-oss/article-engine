@@ -42,6 +42,11 @@ You receive an ADAPTATION MODE. Respect it:
 - **FALLBACK:** Same as registry mode, but the shell is also generated from internal defaults
 
 **Internal Registry Available Blueprints:**
+
+Structural (used automatically — do not assign to content sections):
+`bp-article-shell` (page wrapper), `bp-hero` (hero section), `bp-article-prose` (default prose block)
+
+Content (assign to sections in the architecture):
 `bp-stats-cards`, `bp-comparison-table`, `bp-step-process`, `bp-pull-quote`, `bp-data-table`, `bp-before-after`, `bp-highlight-callout`, `bp-key-takeaways`, `bp-checklist`, `bp-timeline`, `bp-section-heading`, `bp-numbered-list`, `bp-callout`, `bp-image-caption`, `bp-faq-accordion`, `bp-feature-grid`, `bp-problem-solution`, `bp-inline-cta`, `bp-two-col-text`, `bp-mini-cards`
 
 **Topic-Aware Blueprint Selection:**

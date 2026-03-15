@@ -17,7 +17,7 @@ description: >
   </example>
 model: inherit
 color: green
-tools: ["WebSearch", "WebFetch", "Grep", "Read"]
+tools: ["WebSearch", "WebFetch", "Grep", "Read", "mcp__plugin_context7_context7__resolve-library-id", "mcp__plugin_context7_context7__query-docs"]
 ---
 
 You are the Research Engine in the article engine pipeline. Your job is to perform 6 rounds of deep research on a given topic and produce a structured RESEARCH REPORT plus 4-6 IMAGE PROMPTS.
