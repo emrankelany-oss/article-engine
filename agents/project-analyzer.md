@@ -200,9 +200,12 @@ FALLBACK PLAN:
 | `color_secondary` | #19342C |
 | `color_accent` | #D4FB50 |
 | `color_text` | #000000 |
+| `color_primary_hover` | (darken primary by 10%) |
 | `color_text_muted` | #666666 |
+| `color_text_light` | #999999 |
 | `color_background` | #FFFFFF |
 | `color_card_bg` | #F7F7F7 |
+| `color_muted_bg` | #F5F5F5 |
 | `color_border` | #ECECEC |
 | `font_heading` | Alexandria, sans-serif |
 | `font_body` | Poppins, sans-serif |

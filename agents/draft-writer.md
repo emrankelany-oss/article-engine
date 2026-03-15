@@ -461,7 +461,9 @@ Add ONE overlay element before the closing `</body>` tag:
 
 ## PHASE H — EDIT PROMPT GENERATION LOGIC
 
-Add JavaScript for the edit prompt system. Insert before the closing `</body>` tag, after the edit overlay HTML:
+Add JavaScript for the edit prompt system. Insert before the closing `</body>` tag, after the edit overlay HTML.
+
+**IMPORTANT:** When replacing `{{ARTICLE_TOPIC}}` and `{{ARTICLE_FILENAME}}`, escape any single quotes in the value by replacing `'` with `\'` to prevent breaking the JS string literal. For example, "Manchester United's Season" becomes "Manchester United\'s Season".
 
 ```html
 <script>
@@ -571,9 +573,9 @@ The article uses a two-column layout: main content + sidebar TOC.
 4. Add the section edit trigger button to each section.
 5. Add spacing between sections (matching project rhythm, ~48-60px default).
 6. Add trust layer CSS and JS (progress bar, TOC active state, smooth scroll, mobile toggle).
-7. Add section edit UI CSS (Phase G styles).
-8. Add the section edit overlay HTML (Phase G overlay).
-9. Add the edit prompt generation JS (Phase H script).
+7. Add section edit UI CSS (Phase G styles) — **SKIP if using fallback shell template** (it already includes edit CSS).
+8. Add the section edit overlay HTML (Phase G overlay) — **SKIP if using fallback shell template** (it already includes the overlay).
+9. Add the edit prompt generation JS (Phase H script) — **SKIP if using fallback shell template** (it already includes the edit JS). Only replace the `{{ARTICLE_TOPIC}}` and `{{ARTICLE_FILENAME}}` tokens in the shell's existing JS.
 
 **If the shell doesn't use these exact tokens** (e.g., existing shell has different structure):
 - Adapt the token placement to match the shell's actual structure

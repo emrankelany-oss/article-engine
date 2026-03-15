@@ -454,9 +454,12 @@ color_primary: #2563EB
 color_secondary: #1E293B
 color_accent: #3B82F6
 color_text: #1E293B
+color_primary_hover: #1D4ED8
 color_text_muted: #64748B
+color_text_light: #94A3B8
 color_background: #FFFFFF
 color_card_bg: #F8FAFC
+color_muted_bg: #F1F5F9
 color_border: #E2E8F0
 font_heading: Inter, sans-serif
 font_body: Inter, sans-serif
