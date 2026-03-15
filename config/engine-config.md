@@ -1,4 +1,4 @@
-# Article Engine Configuration v4.3
+# Article Engine Configuration v4.5
 
 This configuration is project-agnostic. Most values auto-detect from the current project.
 Override any value to customize behavior. Leave as `auto` or `__PLACEHOLDER__` for auto-detection.
@@ -485,7 +485,7 @@ These defaults are neutral, modern, and broadly professional. They are overridde
 - on_skip: proceed with fallback mode (web search + image placeholders)
 - on_configure: write Gemini MCP to ~/.claude.json, require restart
 - on_re_trigger: re-run setup regardless of existing status
-- setup_file_location: .claude/plugins/article-engine/config/.setup-status.json
+- setup_file_location: config/.setup-status.json (relative to plugin root — resolve at runtime from the skill file location)
 
 ---
 
@@ -505,7 +505,7 @@ These defaults are neutral, modern, and broadly professional. They are overridde
      "mcpServers": {
        "gemini": {
          "command": "npx",
-         "args": ["-y", "@anthropic/gemini-mcp-server"],
+         "args": ["-y", "@rlabs-inc/gemini-mcp"],
          "env": { "GEMINI_API_KEY": "your-key-here" }
        }
      }

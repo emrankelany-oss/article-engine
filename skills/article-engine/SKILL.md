@@ -13,7 +13,7 @@ description: >
   rewrite capabilities and multi-image generation (4-6 images per article).
 ---
 
-# Autonomous Article Engine v4.3
+# Autonomous Article Engine v4.5
 
 A portable, project-agnostic article generation engine. Generates complete standalone HTML article pages from minimal input by automatically adapting to the current project's design system, detecting reusable shells and components, and producing publication-ready content with research, images, TOC, trust elements, and section-level editing capabilities.
 
@@ -156,7 +156,7 @@ One-time ingestion from `article-components.html`. The registry is now self-cont
 Before running the pipeline, check if this is the first time the plugin is being used in this project. If so, guide the user through Gemini MCP configuration for the best experience.
 
 **Detection:**
-Check if the file `config/.setup-status.json` exists inside the plugin directory (`.claude/plugins/article-engine/config/.setup-status.json`).
+Check if the file `config/.setup-status.json` exists inside the plugin directory. To find the plugin directory at runtime, locate the directory containing this skill file (the plugin root is two levels up from the SKILL.md file: `skills/article-engine/SKILL.md` → plugin root). Then check `{plugin_root}/config/.setup-status.json`.
 
 - If the file **exists** and contains `"setup_completed": true` → skip this step, proceed to Step 1.
 - If the file **does not exist** or contains `"setup_completed": false` → this is a first-time run. Execute the setup gate.
@@ -204,7 +204,7 @@ Would you like to configure Gemini MCP now?
      "mcpServers": {
        "gemini": {
          "command": "npx",
-         "args": ["-y", "@anthropic/gemini-mcp-server"],
+         "args": ["-y", "@rlabs-inc/gemini-mcp"],
          "env": { "GEMINI_API_KEY": "<USER_PROVIDED_KEY>" }
        }
      }
@@ -971,7 +971,7 @@ If neighboring changes are needed, keep them minimal and explicit.
 - Trust layer elements required on every article
 - Section edit UI required on every generated article (CSS + overlay HTML + JS + per-section triggers — see Validation U)
 - Every section must have 5 data attributes: data-section-id, data-section-type, data-section-role, data-section-heading, data-section-purpose
-- Section IDs must be semantic (section-intro, section-faq) not numeric (section-1, section-2)
+- Section IDs must follow the pattern `section-{N}` where N is the section order (section-1, section-2, etc.) for consistency with TOC anchors and the edit system
 - Edit prompt must include: skill name, article topic, article file, section ID, section type, section role, section purpose, section heading, user instruction
 - Reuse project analysis for second article in same session
 
@@ -1044,7 +1044,7 @@ The skill must behave identically in any project. The structural registry travel
 3. **Edit overlay HTML:** Exactly ONE `<div class="section-edit-overlay" id="section-edit-overlay">` before closing `</body>`, containing the edit panel with textarea input, Cancel/Generate buttons, and prompt result display with Copy button
 4. **Edit prompt JS:** JavaScript that wires up trigger buttons → overlay → prompt generation → clipboard copy. Must include `ARTICLE_TOPIC` and `ARTICLE_FILE` constants. The generated prompt must follow the SECTION_EDIT format from the Section Edit Prompt Template
 5. **Edit CSS:** Full section edit system styles (trigger button, overlay, panel, input, buttons, prompt result, copy button, print hiding)
-6. **Section IDs must be semantic:** Use `section-intro`, `section-numbers`, `section-faq` etc. — NOT generic `section-1`, `section-2`
+6. **Section IDs must be numeric:** Use `section-1`, `section-2`, `section-3` etc. — following the `section-{N}` pattern for consistency with TOC anchors and the edit system JS
 
 **If any of these are missing, the article fails validation.** The draft-writer agent's Phases F, G, H define the exact implementation. The orchestrator must verify the output contains all edit system elements before delivering.
 
