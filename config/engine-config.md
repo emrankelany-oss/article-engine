@@ -56,7 +56,7 @@ Override any value to customize behavior. Leave as `auto` or `__PLACEHOLDER__` f
 ### Registry Settings
 - registry_file: config/structural-component-registry.md
 - registry_source: article-components.html (one-time ingestion, not needed at runtime)
-- total_blueprints: 23 (20 components + hero + shell + prose)
+- total_blueprints: 173 (170 components + hero + shell + prose)
 - stores_structure_only: true
 - stores_visual_identity: false
 
