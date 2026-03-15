@@ -256,7 +256,7 @@ Add to the page `<style>` block:
   color: #fff;
   border: none;
   border-radius: 6px;
-  font-family: var(--font-body, inherit);
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -265,7 +265,6 @@ Add to the page `<style>` block:
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .section-edit-trigger:hover {
-  background: var(--primary-hover, var(--primary));
   filter: brightness(1.1);
 }
 .section-edit-trigger svg {
@@ -370,10 +369,70 @@ Add to the page `<style>` block:
   background: var(--muted-bg, #f5f5f5);
 }
 
-/* Generated prompt display */
+/* Edit status toast */
+.section-edit-status {
+  display: none;
+  margin-top: 16px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.section-edit-status.visible {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-edit-status--success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.section-edit-status--error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.section-edit-status svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.section-edit-status-text {
+  flex: 1;
+}
+.section-edit-status code {
+  background: rgba(0,0,0,0.06);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Fallback prompt toggle */
+.section-edit-fallback-toggle {
+  display: none;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted, #666);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.section-edit-fallback-toggle.visible {
+  display: inline-block;
+}
+
+/* Generated prompt display (fallback) */
 .section-edit-prompt-result {
   display: none;
-  margin-top: 20px;
+  margin-top: 12px;
   padding: 16px;
   background: var(--card-bg, #f8fafc);
   border: 1px solid var(--border, #e2e8f0);
@@ -444,8 +503,10 @@ Add ONE overlay element before the closing `</body>` tag:
       placeholder="Describe the change you want. Examples:&#10;• Make this section more emotional&#10;• Shorten this intro&#10;• Add stronger facts&#10;• Make the tone more professional&#10;• Replace this with a timeline style"></textarea>
     <div class="section-edit-actions">
       <button class="section-edit-btn section-edit-btn--cancel" id="edit-cancel-btn">Cancel</button>
-      <button class="section-edit-btn section-edit-btn--generate" id="edit-generate-btn">Generate Edit Prompt</button>
+      <button class="section-edit-btn section-edit-btn--generate" id="edit-generate-btn">Apply Edit</button>
     </div>
+    <div class="section-edit-status" id="edit-status"></div>
+    <button class="section-edit-fallback-toggle" id="edit-fallback-toggle">Show prompt (manual fallback)</button>
     <div class="section-edit-prompt-result" id="edit-prompt-result">
       <pre id="edit-prompt-text"></pre>
       <button class="section-edit-copy-btn" id="edit-copy-btn">
@@ -459,9 +520,11 @@ Add ONE overlay element before the closing `</body>` tag:
 
 ---
 
-## PHASE H — EDIT PROMPT GENERATION LOGIC
+## PHASE H — EDIT SYSTEM LOGIC (Auto-Clipboard + /apply-edit)
 
-Add JavaScript for the edit prompt system. Insert before the closing `</body>` tag, after the edit overlay HTML.
+Add JavaScript for the edit system. Insert before the closing `</body>` tag, after the edit overlay HTML.
+
+**Flow:** When user clicks "Apply Edit", the system auto-copies the SECTION_EDIT prompt to the clipboard and shows a success message instructing them to type `/apply-edit` in Claude Code. If clipboard access fails, a fallback shows the raw prompt for manual copy.
 
 **IMPORTANT:** When replacing `{{ARTICLE_TOPIC}}` and `{{ARTICLE_FILENAME}}`, escape any single quotes in the value by replacing `'` with `\'` to prevent breaking the JS string literal. For example, "Manchester United's Season" becomes "Manchester United\'s Season".
 
@@ -470,6 +533,19 @@ Add JavaScript for the edit prompt system. Insert before the closing `</body>` t
 (function() {
   const ARTICLE_TOPIC = '{{ARTICLE_TOPIC}}';
   const ARTICLE_FILE = '{{ARTICLE_FILENAME}}';
+
+  function buildEditPrompt(sectionId, sType, sRole, sPurpose, sHeading, userInput) {
+    return 'SECTION_EDIT:\nUse the autonomous-article-engine skill to update section ' + sectionId + '.\n\nTopic: ' + ARTICLE_TOPIC + '\nArticle file: ' + ARTICLE_FILE + '\nSection ID: ' + sectionId + '\nSection type: ' + sType + '\nSection role: ' + sRole + '\nSection purpose: ' + sPurpose + '\nCurrent section heading: ' + sHeading + '\n\nUser requested change: ' + userInput + '\n\nRULES:\n- Update only this section unless a minimal surrounding adjustment is required for consistency\n- Preserve topic domain integrity\n- Preserve page style and component compatibility\n- Improve the section intelligently and professionally, not just literally\n- Keep the result aligned with the rest of the article\n- If the edit affects a heading, update the sidebar TOC entry to match\n- Maintain the section\'s data attributes (data-section-id, data-section-type, data-section-role)';
+  }
+
+  function showEditStatus(type, html) {
+    var el = document.getElementById('edit-status');
+    el.className = 'section-edit-status visible section-edit-status--' + type;
+    var icon = type === 'success'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    el.innerHTML = icon + '<span class="section-edit-status-text">' + html + '</span>';
+  }
 
   // Edit trigger click handlers
   document.querySelectorAll('.section-edit-trigger').forEach(btn => {
@@ -484,7 +560,6 @@ Add JavaScript for the edit prompt system. Insert before the closing `</body>` t
       const sHeading = section.getAttribute('data-section-heading') || 'Untitled';
       const sPurpose = section.getAttribute('data-section-purpose') || '';
 
-      // Populate overlay
       document.getElementById('edit-section-title').textContent = 'Edit: ' + sHeading;
       document.getElementById('edit-section-meta').innerHTML =
         '<span>' + sType + '</span>' +
@@ -492,14 +567,14 @@ Add JavaScript for the edit prompt system. Insert before the closing `</body>` t
 
       const overlay = document.getElementById('section-edit-overlay');
       const input = document.getElementById('edit-section-input');
-      const promptResult = document.getElementById('edit-prompt-result');
 
       input.value = '';
-      promptResult.classList.remove('visible');
+      document.getElementById('edit-status').className = 'section-edit-status';
+      document.getElementById('edit-fallback-toggle').classList.remove('visible');
+      document.getElementById('edit-prompt-result').classList.remove('visible');
       overlay.classList.add('active');
       input.focus();
 
-      // Store current section data
       overlay.setAttribute('data-current-section', sectionId);
       overlay.setAttribute('data-current-type', sType);
       overlay.setAttribute('data-current-role', sRole);
@@ -518,7 +593,7 @@ Add JavaScript for the edit prompt system. Insert before the closing `</body>` t
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
   });
 
-  // Generate prompt button
+  // Apply Edit button — bridge server first, clipboard fallback
   document.getElementById('edit-generate-btn')?.addEventListener('click', () => {
     const overlay = document.getElementById('section-edit-overlay');
     const userInput = document.getElementById('edit-section-input').value.trim();
@@ -530,13 +605,62 @@ Add JavaScript for the edit prompt system. Insert before the closing `</body>` t
     const sHeading = overlay.getAttribute('data-current-heading');
     const sPurpose = overlay.getAttribute('data-current-purpose');
 
-    const prompt = `SECTION_EDIT:\nUse the autonomous-article-engine skill to update section ${sectionId}.\n\nTopic: ${ARTICLE_TOPIC}\nArticle file: ${ARTICLE_FILE}\nSection ID: ${sectionId}\nSection type: ${sType}\nSection role: ${sRole}\nSection purpose: ${sPurpose}\nCurrent section heading: ${sHeading}\n\nUser requested change: ${userInput}\n\nRULES:\n- Update only this section unless a minimal surrounding adjustment is required for consistency\n- Preserve topic domain integrity\n- Preserve page style and component compatibility\n- Improve the section intelligently and professionally, not just literally\n- Keep the result aligned with the rest of the article\n- If the edit affects a heading, update the sidebar TOC entry to match\n- Maintain the section's data attributes (data-section-id, data-section-type, data-section-role)`;
+    const prompt = buildEditPrompt(sectionId, sType, sRole, sPurpose, sHeading, userInput);
 
+    // Store prompt for fallback display
     document.getElementById('edit-prompt-text').textContent = prompt;
-    document.getElementById('edit-prompt-result').classList.add('visible');
+
+    // Disable button to prevent double-clicks
+    var btn = document.getElementById('edit-generate-btn');
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
+    // PRIMARY: Try bridge server (fully automatic)
+    fetch('http://127.0.0.1:19847/apply-edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'success') {
+        showEditStatus('success', 'Section updated automatically! Refresh the page to see changes.');
+        btn.textContent = 'Done!';
+        setTimeout(function() { btn.textContent = 'Apply Edit'; btn.disabled = false; }, 4000);
+      } else if (data.status === 'busy') {
+        showEditStatus('error', 'Another edit is in progress. Please wait and try again.');
+        btn.textContent = 'Apply Edit';
+        btn.disabled = false;
+      } else {
+        showEditStatus('error', 'Edit failed: ' + (data.error || 'Unknown error'));
+        document.getElementById('edit-fallback-toggle').classList.add('visible');
+        btn.textContent = 'Apply Edit';
+        btn.disabled = false;
+      }
+    })
+    .catch(function() {
+      // FALLBACK: Bridge server not running — use clipboard
+      navigator.clipboard.writeText(prompt).then(function() {
+        showEditStatus('success', 'Bridge server not running. Edit request copied to clipboard.<br>In Claude Code, type <code>/apply-edit</code> and press Enter.<br><small>Or run <code>/start-bridge</code> first for fully automatic edits.</small>');
+        document.getElementById('edit-fallback-toggle').classList.add('visible');
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Apply Edit'; btn.disabled = false; }, 3000);
+      }).catch(function() {
+        showEditStatus('error', 'Could not connect to bridge server or copy to clipboard. Use the prompt below.');
+        document.getElementById('edit-fallback-toggle').classList.add('visible');
+        document.getElementById('edit-prompt-result').classList.add('visible');
+        btn.textContent = 'Apply Edit';
+        btn.disabled = false;
+      });
+    });
   });
 
-  // Copy button
+  // Fallback toggle — show/hide raw prompt
+  document.getElementById('edit-fallback-toggle')?.addEventListener('click', () => {
+    document.getElementById('edit-prompt-result').classList.toggle('visible');
+  });
+
+  // Copy button (fallback manual copy)
   document.getElementById('edit-copy-btn')?.addEventListener('click', () => {
     const text = document.getElementById('edit-prompt-text').textContent;
     navigator.clipboard.writeText(text).then(() => {

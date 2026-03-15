@@ -16,7 +16,7 @@ CLAUDE_JSON="$HOME/.claude.json"
 
 echo ""
 echo "  ╔══════════════════════════════════════════╗"
-echo "  ║   Article Engine — Gemini MCP Setup      ║"
+echo "  ║   Article Engine — Full Setup            ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo ""
 
@@ -26,6 +26,21 @@ if ! command -v node &> /dev/null; then
   exit 1
 fi
 echo "  ✓ Node.js found: $(node -v)"
+
+# ── Claude CLI (required for automatic section editing) ──
+echo ""
+echo "  ── Claude CLI ──"
+if command -v claude &> /dev/null; then
+  echo "  ✓ Claude CLI found: $(claude --version 2>/dev/null || echo 'installed')"
+else
+  echo "  ↓ Installing Claude CLI for automatic section editing..."
+  if npm install -g @anthropic-ai/claude-code; then
+    echo "  ✓ Claude CLI installed"
+  else
+    echo "  ⚠ Claude CLI install failed. Section editing will use clipboard fallback."
+    echo "    You can install it later: npm install -g @anthropic-ai/claude-code"
+  fi
+fi
 
 # Get API key
 API_KEY="${1:-}"
@@ -43,13 +58,14 @@ if [ -z "$API_KEY" ]; then
 fi
 
 # Add to ~/.claude.json — pass key via env to avoid shell injection
-GEMINI_KEY="$API_KEY" CLAUDE_CFG="$CLAUDE_JSON" node -e '
+if GEMINI_KEY="$API_KEY" CLAUDE_CFG="$CLAUDE_JSON" node -e '
   const fs = require("fs");
   const key = process.env.GEMINI_KEY;
   const cfgPath = process.env.CLAUDE_CFG;
   let d = {};
   if (fs.existsSync(cfgPath)) {
-    d = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    try { d = JSON.parse(fs.readFileSync(cfgPath, "utf8")); }
+    catch (e) { console.log("  ⚠ Existing ~/.claude.json has invalid JSON — overwriting"); d = {}; }
     if (d.mcpServers && d.mcpServers.gemini) {
       console.log("  ⚠ Gemini MCP already configured — updating API key");
     }
@@ -61,10 +77,13 @@ GEMINI_KEY="$API_KEY" CLAUDE_CFG="$CLAUDE_JSON" node -e '
     env: { GEMINI_API_KEY: key }
   };
   fs.writeFileSync(cfgPath, JSON.stringify(d, null, 2));
-  console.log(fs.existsSync(cfgPath)
-    ? "  ✓ Gemini MCP added to ~/.claude.json"
-    : "  ✓ Created ~/.claude.json with Gemini MCP");
-'
+  console.log("  ✓ Gemini MCP added to ~/.claude.json");
+'; then
+  true
+else
+  echo "  ✗ Failed to update ~/.claude.json. Check Node.js and file permissions."
+  exit 1
+fi
 
 # Pre-download the package
 echo "  ↓ Pre-downloading Gemini MCP package..."

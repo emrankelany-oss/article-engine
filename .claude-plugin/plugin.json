@@ -1,8 +1,9 @@
 {
   "name": "article-engine",
-  "version": "4.5.0",
-  "description": "Portable, project-agnostic article generation engine v4.5. Generates full standalone HTML article pages from minimal input by adapting to any website's design system. Features: first-time setup gate (interactive Gemini MCP configuration on first use with skip option), built-in structural component registry (20+ proven blueprints carried internally — no external component file needed at runtime), runtime visual adaptation to any project's design tokens, domain integrity enforcement, multi-round research via Gemini MCP, portable Gemini image generation with flexible tool resolver, 4-6 images per article, graceful fallback, sidebar table of contents, visual trust layer, enforced section-level editing with per-section edit buttons and ClaudeCode prompt generation (hover edit UI, overlay input, structured SECTION_EDIT prompts with copy-to-clipboard), topic-aware composition, and three adaptation modes (existing/registry/fallback). Works on any project.",
+  "version": "4.6.0",
+  "description": "Portable, project-agnostic article generation engine v4.6. Generates full standalone HTML article pages from minimal input by adapting to any website's design system. Features: first-time setup gate (interactive Gemini MCP configuration on first use with skip option), built-in structural component registry (170+ proven blueprints carried internally — no external component file needed at runtime), runtime visual adaptation to any project's design tokens, domain integrity enforcement, multi-round research via Gemini MCP, portable Gemini image generation with flexible tool resolver, 4-6 images per article, graceful fallback, sidebar table of contents, visual trust layer, fully automatic section editing via bridge server (browser edit UI sends edits directly to Claude Code — no manual copy-paste, with clipboard + /apply-edit command as fallback), topic-aware composition, and three adaptation modes (existing/registry/fallback). Works on any project.",
   "skills": ["./skills/article-engine"],
+  "commands": ["./commands"],
   "author": {
     "name": "emrankelany-oss",
     "email": "emran.kealny@gmail.com"

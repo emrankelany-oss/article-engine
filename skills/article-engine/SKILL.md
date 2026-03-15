@@ -13,7 +13,7 @@ description: >
   rewrite capabilities and multi-image generation (4-6 images per article).
 ---
 
-# Autonomous Article Engine v4.5
+# Autonomous Article Engine v4.6
 
 A portable, project-agnostic article generation engine. Generates complete standalone HTML article pages from minimal input by automatically adapting to the current project's design system, detecting reusable shells and components, and producing publication-ready content with research, images, TOC, trust elements, and section-level editing capabilities.
 
@@ -191,6 +191,20 @@ Would you like to configure Gemini MCP now?
 
 **WAIT for user response.**
 
+**Before proceeding with either option — Claude CLI check:**
+
+Check if the `claude` CLI is available by running `claude --version` via Bash. If NOT found:
+
+1. Inform the user:
+   ```
+   Installing Claude CLI for automatic section editing...
+   ```
+2. Run: `npm install -g @anthropic-ai/claude-code`
+3. If successful: `✓ Claude CLI installed — browser edits will be fully automatic`
+4. If failed: `⚠ Claude CLI not installed — section editing will use clipboard fallback. You can install it later: npm install -g @anthropic-ai/claude-code`
+
+This is non-blocking — the pipeline continues regardless.
+
 **If user chooses YES (option 1):**
 
 1. Ask the user for their Gemini API key:
@@ -253,6 +267,8 @@ After either path, write this file:
   "setup_date": "<ISO_DATE>",
   "gemini_configured": true | false,
   "gemini_setup_method": "interactive" | "skipped",
+  "claude_cli_installed": true | false,
+  "bridge_editing": "automatic" | "clipboard_fallback",
   "notes": "<any relevant notes>"
 }
 ```
@@ -273,6 +289,8 @@ SETUP STATUS
 Gemini MCP: [configured / skipped]
 Image generation: [available after restart / fallback mode]
 Research: [Gemini + web search / web search only]
+Claude CLI: [installed — automatic editing / not installed — clipboard fallback]
+Section editing: [fully automatic via bridge server / clipboard + /apply-edit]
 Status: ready to proceed
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -777,19 +795,36 @@ LAYOUT:
 SECTION EDITING REQUIREMENTS:
 - Assign stable section metadata (id, type, role, purpose) to every editable section
 - Inject the section edit UI (hover controls, edit input overlay) into the page
-- Include the edit prompt generation JavaScript
+- Include the edit system JavaScript (bridge server → clipboard fallback)
 - Each section must have data attributes: data-section-id, data-section-type, data-section-role
 - The edit UI must be professional, unobtrusive, and match the page design
-- Include CSS for the section edit system
-- Include JS for the edit prompt builder
+- Include CSS for the section edit system (including status toast and fallback toggle styles)
+- Include JS for the edit system: buildEditPrompt(), showEditStatus(), bridge server fetch with clipboard fallback
+- The "Apply Edit" button must try http://127.0.0.1:19847/apply-edit first (bridge server), then fall back to clipboard auto-copy + /apply-edit command
 
 Write all sections, build TOC, insert images (4-6), apply trust layer, attach section metadata,
-integrate edit UI, build edit prompt logic, assemble into shell, run consistency pass
+integrate edit UI, build edit system logic, assemble into shell, run consistency pass
 (domain drift + sidebar TOC validation + section ID stability + image quality check),
 write final HTML. Return ARTICLE DELIVERY REPORT.
 ```
 
-**After agent returns:**
+**After agent returns — auto-start bridge server:**
+
+After the draft-writer agent completes and the article is delivered, automatically start the bridge server for live section editing:
+
+1. **Check if bridge is already running:** Use Bash to run `curl -s http://127.0.0.1:19847/health 2>/dev/null` (or PowerShell equivalent). If it responds with `{"status":"ok"}`, the bridge is already running — skip to the delivery report.
+
+2. **Start the bridge server:** Find `bridge/server.js` in the article-engine plugin directory (typically `.claude/plugins/article-engine/bridge/server.js`). Start it in the background:
+   ```
+   node "<plugin-dir>/bridge/server.js" "<project-dir>"
+   ```
+   Run this in the background so it stays alive after the command completes.
+
+3. **Verify:** Wait 2 seconds, then check the health endpoint again. If it responds, the bridge is ready.
+
+4. **Include bridge status in the delivery report** (running / failed to start).
+
+If the bridge fails to start (Node.js not available, port in use, etc.), continue with delivery — the edit system will fall back to clipboard + `/apply-edit` command.
 
 ```
 ARTICLE DELIVERED
@@ -806,7 +841,7 @@ Images: {image_count} ({generation_mode})
 Sidebar TOC: {entry_count} entries
 Trust elements: {list}
 Editable sections: {count} with edit UI
-Edit prompt system: integrated
+Edit system: bridge server + auto-clipboard + /apply-edit fallback
 Consistency: {all passed / flags}
 
 GEMINI INTEGRATION DIAGNOSTIC
@@ -828,11 +863,20 @@ Fallback used: {yes — placeholder+prompts / no}
 Failure reason: {none / no compatible tool found / generation error / ...}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
+BRIDGE SERVER
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Status: {running / not started}
+URL: http://127.0.0.1:19847
+━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Next steps (optional):
 - "preview" → open in browser
 - "alternatives" → generate 3 title alternatives
-- "edit section [id]" → edit a specific section via the edit UI
-- hover over any section on the page → use the built-in edit button
+- "edit section [id]" → edit a specific section directly
+- hover over any section → click Edit → type changes → click Apply Edit → automatic update (if bridge running)
+- /start-bridge → start the bridge server for fully automatic browser edits
+- /stop-bridge → stop the bridge server
+- /apply-edit → manually apply an edit from clipboard (fallback if bridge not running)
 - "another article" → start pipeline with new topic
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -841,12 +885,34 @@ Next steps (optional):
 
 ## SECTION EDIT MODE
 
-When the skill receives a section edit prompt (from the page's edit UI or from the user directly), it operates in Section Edit Mode.
+When the skill receives a section edit prompt (from the `/apply-edit` command, direct input, or clipboard), it operates in Section Edit Mode.
+
+### Edit Flow (Primary — Bridge Server, fully automatic)
+
+1. User opens the generated article in a browser
+2. User hovers over a section → clicks the Edit button
+3. User types their desired changes in the overlay textarea
+4. User clicks "Apply Edit"
+5. The browser sends the SECTION_EDIT prompt to the bridge server at `http://127.0.0.1:19847/apply-edit`
+6. The bridge server spawns `claude -p` to process the edit automatically
+7. The section is updated — user refreshes the page to see changes
+
+**The bridge server is auto-started after article generation.** Users can also manually start/stop it with `/start-bridge` and `/stop-bridge`.
+
+### Edit Flow (Fallback — Clipboard + Command)
+
+If the bridge server is not running:
+
+1. The "Apply Edit" button auto-copies the SECTION_EDIT prompt to clipboard
+2. User switches to Claude Code and types `/apply-edit`
+3. The `/apply-edit` command reads the clipboard and processes the edit
+
+If clipboard also fails, the overlay shows the raw prompt for manual copy.
 
 ### Detection
 
 Section Edit Mode activates when input contains:
-- `SECTION_EDIT:` prefix
+- `SECTION_EDIT:` prefix (from `/apply-edit` command or direct paste)
 - A `data-section-id` reference
 - "update section [id]" pattern
 - A structured edit prompt generated by the page's edit UI
@@ -969,7 +1035,7 @@ If neighboring changes are needed, keep them minimal and explicit.
 - Sidebar TOC must match final headings exactly
 - Two-column layout mandatory: hero full-width, content + sidebar in grid
 - Trust layer elements required on every article
-- Section edit UI required on every generated article (CSS + overlay HTML + JS + per-section triggers — see Validation U)
+- Section edit UI required on every generated article (CSS + overlay HTML + JS + per-section triggers + auto-clipboard + /apply-edit command — see Validation U)
 - Every section must have 5 data attributes: data-section-id, data-section-type, data-section-role, data-section-heading, data-section-purpose
 - Section IDs must follow the pattern `section-{N}` where N is the section order (section-1, section-2, etc.) for consistency with TOC anchors and the edit system
 - Edit prompt must include: skill name, article topic, article file, section ID, section type, section role, section purpose, section heading, user instruction
@@ -1041,9 +1107,9 @@ The skill must behave identically in any project. The structural registry travel
 **Every generated article MUST include ALL of these — no exceptions:**
 1. **Section wrappers:** Every content section wrapped in `<section>` with `id`, `class="article-section"`, and ALL five data attributes: `data-section-id`, `data-section-type`, `data-section-role`, `data-section-heading`, `data-section-purpose`
 2. **Edit trigger buttons:** Every `<section class="article-section">` must contain a `<button class="section-edit-trigger">` as its first child with `data-edit-section` pointing to the section ID
-3. **Edit overlay HTML:** Exactly ONE `<div class="section-edit-overlay" id="section-edit-overlay">` before closing `</body>`, containing the edit panel with textarea input, Cancel/Generate buttons, and prompt result display with Copy button
-4. **Edit prompt JS:** JavaScript that wires up trigger buttons → overlay → prompt generation → clipboard copy. Must include `ARTICLE_TOPIC` and `ARTICLE_FILE` constants. The generated prompt must follow the SECTION_EDIT format from the Section Edit Prompt Template
-5. **Edit CSS:** Full section edit system styles (trigger button, overlay, panel, input, buttons, prompt result, copy button, print hiding)
+3. **Edit overlay HTML:** Exactly ONE `<div class="section-edit-overlay" id="section-edit-overlay">` before closing `</body>`, containing the edit panel with textarea input, Cancel/Apply Edit buttons, status display area, fallback toggle, and prompt result display with Copy button
+4. **Edit system JS:** JavaScript that wires up trigger buttons → overlay → auto-clipboard copy → status toast → fallback prompt display. Must include `ARTICLE_TOPIC` and `ARTICLE_FILE` constants, `buildEditPrompt()` helper, and `showEditStatus()` helper. The "Apply Edit" button auto-copies the SECTION_EDIT prompt to clipboard and instructs user to type `/apply-edit` in Claude Code. Fallback shows raw prompt for manual copy if clipboard fails.
+5. **Edit CSS:** Full section edit system styles (trigger button, overlay, panel, input, buttons, status toast with success/error variants, fallback toggle, prompt result, copy button, print hiding)
 6. **Section IDs must be numeric:** Use `section-1`, `section-2`, `section-3` etc. — following the `section-{N}` pattern for consistency with TOC anchors and the edit system JS
 
 **If any of these are missing, the article fails validation.** The draft-writer agent's Phases F, G, H define the exact implementation. The orchestrator must verify the output contains all edit system elements before delivering.
