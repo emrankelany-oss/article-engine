@@ -396,7 +396,8 @@ const server = http.createServer(async (req, res) => {
       // Spawn claude in print mode to process the edit
       const proc = spawn('claude', ['-p'], {
         cwd: PROJECT_DIR,
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: true
       });
 
       let stdout = '';
