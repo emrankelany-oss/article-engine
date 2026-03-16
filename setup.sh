@@ -7,7 +7,10 @@
 #
 # Usage:
 #   bash .claude/plugins/article-engine/setup.sh
-#   bash .claude/plugins/article-engine/setup.sh YOUR_GEMINI_API_KEY
+#
+# Note: On Windows, run this from Git Bash or WSL.
+#       The plugin's Step 0 setup gate handles configuration
+#       interactively for all platforms including Windows.
 # ============================================================
 
 set -e
@@ -34,23 +37,23 @@ if command -v claude &> /dev/null; then
   echo "  ✓ Claude CLI found: $(claude --version 2>/dev/null || echo 'installed')"
 else
   echo "  ↓ Installing Claude CLI for automatic section editing..."
-  if npm install -g @anthropic-ai/claude-code; then
+  if npm install -g @anthropic-ai/claude-code 2>/dev/null; then
     echo "  ✓ Claude CLI installed"
+  elif command -v sudo &> /dev/null && sudo npm install -g @anthropic-ai/claude-code 2>/dev/null; then
+    echo "  ✓ Claude CLI installed (with sudo)"
   else
-    echo "  ⚠ Claude CLI install failed. Section editing will use clipboard fallback."
-    echo "    You can install it later: npm install -g @anthropic-ai/claude-code"
+    echo "  ⚠ Claude CLI install failed (you may need admin/sudo permissions)."
+    echo "    Try manually: sudo npm install -g @anthropic-ai/claude-code"
+    echo "    Section editing will use clipboard fallback until installed."
   fi
 fi
 
-# Get API key
-API_KEY="${1:-}"
-if [ -z "$API_KEY" ]; then
-  echo ""
-  echo "  Get a free Gemini API key from:"
-  echo "  → https://aistudio.google.com/apikey"
-  echo ""
-  read -p "  Paste your Gemini API key: " API_KEY
-fi
+# Get API key (always interactive — never pass as argument to avoid ps exposure)
+echo ""
+echo "  Get a free Gemini API key from:"
+echo "  → https://aistudio.google.com/apikey"
+echo ""
+read -p "  Paste your Gemini API key: " API_KEY
 
 if [ -z "$API_KEY" ]; then
   echo "  ✗ No API key provided. Aborting."
@@ -87,11 +90,22 @@ fi
 
 # Pre-download the package
 echo "  ↓ Pre-downloading Gemini MCP package..."
-if npx -y @rlabs-inc/gemini-mcp --help &> /dev/null; then
+if npx -y @rlabs-inc/gemini-mcp --help >/dev/null 2>&1; then
   echo "  ✓ Package cached"
 else
   echo "  ⚠ Package pre-download failed. Gemini MCP will download on first use."
   echo "    If this persists, check your internet connection or npm registry access."
+fi
+
+# ── Supabase Auth (pre-configured) ──
+echo ""
+echo "  ── Auth System ──"
+SUPABASE_CFG="$(dirname "$0")/config/.supabase.json"
+if [ -f "$SUPABASE_CFG" ]; then
+  echo "  ✓ Supabase auth configured (edit authorization enabled)"
+else
+  echo "  ⚠ Supabase config not found. Section editing auth will be disabled."
+  echo "    This is normal if auth has not been set up for this plugin instance."
 fi
 
 echo ""
@@ -100,5 +114,7 @@ echo "  ✓ Setup complete!"
 echo "  "
 echo "  Restart Claude Code, then say:"
 echo "  \"write an article about [any topic]\""
+echo "  "
+echo "  Free tier: 4 articles/day, editing requires login."
 echo "  ══════════════════════════════════════════"
 echo ""

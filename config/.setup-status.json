@@ -1,7 +1,0 @@
-{
-  "setup_completed": true,
-  "setup_date": "2026-03-15",
-  "gemini_configured": true,
-  "gemini_setup_method": "interactive",
-  "notes": "Gemini MCP configured globally in ~/.claude.json with @rlabs-inc/gemini-mcp"
-}

@@ -9,7 +9,7 @@ This is the fallback command for when the bridge server is not running. The brid
 
 ## Step 1 — Read clipboard
 
-Read the clipboard content. On Windows use: `powershell.exe -command "Get-Clipboard"`. On macOS use: `pbpaste`. On Linux use: `xclip -selection clipboard -o`.
+Read the clipboard content. On Windows use: `powershell -command "Get-Clipboard"` (works with both PowerShell 5.x and 7+). On macOS use: `pbpaste`. On Linux use: `xclip -selection clipboard -o`.
 
 ## Step 2 — Validate
 

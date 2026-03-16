@@ -17,7 +17,7 @@ Stop the running Article Engine bridge server.
    - If PID file exists: read the PID and kill it with `taskkill /PID <pid> /F` (Windows) or `kill <pid>` (Unix)
    - If no PID file: use `powershell.exe -command "Get-NetTCPConnection -LocalPort 19847 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }"` (Windows) or `lsof -ti:19847 | xargs kill` (Unix)
 
-4. **Clean up:** Remove `.claude-bridge-pid` and `.claude-pending-edit.json` if they exist.
+4. **Clean up:** Remove `.claude-bridge-pid` if it exists.
 
 5. **Verify:** Try fetching `http://127.0.0.1:19847/health` again — it should fail.
 

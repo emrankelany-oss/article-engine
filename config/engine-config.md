@@ -515,9 +515,9 @@ These defaults are neutral, modern, and broadly professional. They are overridde
    }
    ```
 
-2. **Or** configure it globally in `~/.claude/.mcp.json` so it's available in all projects.
+3. **Or** configure it globally in `~/.claude/.mcp.json` so it's available in all projects.
 
-3. **Or** set the `GEMINI_API_KEY` environment variable and configure the MCP server command.
+4. **Or** set the `GEMINI_API_KEY` environment variable and configure the MCP server command.
 
 **If Gemini is not configured:** The skill still works. Articles generate normally with image placeholders, and the image prompts are exported so you can generate images with any tool.
 

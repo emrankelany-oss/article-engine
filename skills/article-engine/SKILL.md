@@ -1,16 +1,14 @@
 ---
 name: article-engine
 description: >
-  Use when the user wants to generate a blog article, create article content,
-  write an article page, or edit a section of an existing generated article.
-  Trigger phrases: "generate an article", "write an article", "create an article about",
-  "article engine", "new article", "write a blog post", "edit section", "update section",
-  "configure gemini", "setup gemini", "reconfigure article engine".
-  Also triggers when user provides a topic keyword or phrase with clear intent to
-  produce article content, or when a generated edit prompt targets a specific section.
-  Works with ANY topic on ANY website. Automatically adapts to the current project's
-  design system, shell, and components. Supports section-level editing with intelligent
-  rewrite capabilities and multi-image generation (4-6 images per article).
+  Generates blog articles, pages, and content. Triggers on: "article", "blog post",
+  "generate a page", "write a page", "create a page", "generate an article",
+  "write an article", "create an article", "new article", "article engine",
+  "article-engine", "write about", "create content about", "blog about",
+  "generate content", "write a blog", "make an article", "make a page",
+  "edit section", "update section", "configure gemini", "setup gemini",
+  "reconfigure article engine". Also triggers on any topic with intent to produce
+  article/page content (e.g. "Manchester United", "write about AI in logistics").
 ---
 
 # Autonomous Article Engine v4.6
@@ -76,7 +74,22 @@ Write Article → Attach Section Metadata → Integrate Section Edit UI →
 Build Edit Prompt Logic → Visual Trust Moderation → Final Consistency Pass → Deliver HTML
 ```
 
-23 steps, grouped into agent dispatches. Step 0 (First-Time Setup Gate) runs once per project. Step 13 (Gemini Capability Check) is for portability.
+Steps 0-22, grouped into agent dispatches. Step 0 (First-Time Setup Gate) runs once per project. Step 0.5 (Quota Check) runs every time. Step 13 (Gemini Capability Check) is for portability.
+
+### Progress Messages
+
+At each major phase, output a short progress line so the user knows what's happening. This is important because the full pipeline takes 12-20 minutes and users may think it's stuck without feedback.
+
+Show these at the start of each phase:
+- Step 1-2: `📋 Parsing topic and classifying domain...`
+- Steps 3-8: `🔍 Analyzing your website's design system...`
+- Step 9: `🔬 Researching topic — this may take a few minutes...`
+- Step 10: `💡 Generating article concepts...`
+- Step 11: `🏗️ Building article architecture...`
+- Steps 12-15: `🖼️ Planning and generating images...`
+- Step 16: `📑 Building table of contents...`
+- Steps 17-22: `✍️ Writing the full article — this is the longest step...`
+- After delivery: `✅ Article delivered!`
 
 ---
 
@@ -155,11 +168,27 @@ One-time ingestion from `article-components.html`. The registry is now self-cont
 
 Before running the pipeline, check if this is the first time the plugin is being used in this project. If so, guide the user through Gemini MCP configuration for the best experience.
 
-**Detection:**
+**Detection (two-phase check):**
+
 Check if the file `config/.setup-status.json` exists inside the plugin directory. To find the plugin directory at runtime, locate the directory containing this skill file (the plugin root is two levels up from the SKILL.md file: `skills/article-engine/SKILL.md` → plugin root). Then check `{plugin_root}/config/.setup-status.json`.
 
-- If the file **exists** and contains `"setup_completed": true` → skip this step, proceed to Step 1.
+**Phase 1 — Status file check:**
 - If the file **does not exist** or contains `"setup_completed": false` → this is a first-time run. Execute the setup gate.
+- If the file **exists** and contains `"setup_completed": true` → proceed to Phase 2.
+
+**Phase 2 — Live Gemini verification (ALWAYS runs even if status says configured):**
+
+Read `~/.claude.json` via Bash and check if Gemini MCP is actually present. The check must be SPECIFIC — do not assume any MCP server is Gemini. Look for ALL of these indicators:
+
+1. Check if `mcpServers` has a key named `"gemini"` (exact match)
+2. Check if any MCP server entry has `"gemini"` in its `command` or `args` array (e.g., `"@rlabs-inc/gemini-mcp"`, `"gemini-mcp"`)
+3. Check if any MCP server entry has `"GEMINI_API_KEY"` in its `env` object
+
+**Decision logic:**
+- If ANY of the 3 checks above find a match → Gemini is confirmed. Skip setup, proceed to Step 0.5.
+- If NONE of the 3 checks match → Gemini is NOT actually configured, even if `.setup-status.json` says it is. The status file is stale. Execute the setup gate.
+
+**IMPORTANT:** The presence of other MCP servers (Playwright, filesystem, etc.) does NOT mean Gemini is configured. You must find a Gemini-specific match.
 
 **First-Time Setup Flow:**
 
@@ -225,7 +254,8 @@ This is non-blocking — the pipeline continues regardless.
    }
    ```
 4. If it does not exist, create it with the above structure.
-5. Inform the user:
+5. **Post-write verification:** Read back `~/.claude.json` and confirm that `mcpServers.gemini` exists and contains the correct `GEMINI_API_KEY`. If the verification fails, inform the user: `⚠ Config write failed — please check ~/.claude.json manually.` and set `gemini_configured: false` in the status file.
+6. Inform the user:
    ```
    ✓ Gemini MCP configured in ~/.claude.json
 
@@ -237,10 +267,10 @@ This is non-blocking — the pipeline continues regardless.
    the article will generate with web search and image placeholders.
    You can regenerate images after restarting.
    ```
-6. Ask: `Would you like to restart now, or proceed without Gemini for this session?`
+7. Ask: `Would you like to restart now, or proceed without Gemini for this session?`
    - If restart → save setup status and tell user to restart and re-run
    - If proceed → continue to Step 1 (Gemini won't be available until restart)
-7. Write the setup status file.
+8. Write the setup status file.
 
 **If user chooses SKIP (option 2):**
 
@@ -294,6 +324,75 @@ Section editing: [fully automatic via bridge server / clipboard + /apply-edit]
 Status: ready to proceed
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+Proceed to Step 0.5.
+
+---
+
+## STEP 0.5 — GENERATION QUOTA CHECK (inline)
+
+Before generating an article, check whether the user has remaining quota. Free users get 4 articles per day. Authorized users get unlimited.
+
+**Pre-check — ensure bridge is available for auth verification:**
+If `config/.auth-session.json` exists and `count` >= 4, you will need the bridge server to verify the token. Run `curl -s http://127.0.0.1:19847/health` to check. If the bridge is not running but the auth session file shows `subscription_status: "active"` and `last_verified` is within 24 hours, trust the local file and proceed. Otherwise, start the bridge server (see auto-start instructions below) before verifying.
+
+**Local quota tracking:**
+
+Read the file `config/.usage.json` inside the plugin directory. If it doesn't exist, create it:
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "count": 0
+}
+```
+
+**Check logic:**
+
+1. Read `config/.usage.json`
+2. If `date` doesn't match today → reset: set `date` to today, `count` to 0
+3. If `count` >= 4:
+   - Check if user has a stored auth session in `config/.auth-session.json`
+   - If **authenticated with active subscription** → proceed (unlimited), increment count
+   - If **not authenticated** → stop and show:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║          DAILY GENERATION LIMIT REACHED (4/4)               ║
+     ╠══════════════════════════════════════════════════════════════╣
+     ║                                                              ║
+     ║  You've used your 4 free articles for today.                ║
+     ║                                                              ║
+     ║  To generate unlimited articles:                             ║
+     ║    1. Sign up at the edit panel in any generated article     ║
+     ║    2. Contact the admin for account activation               ║
+     ║    3. Your unlimited access applies to both generation       ║
+     ║       and section editing                                    ║
+     ║                                                              ║
+     ║  Your free quota resets tomorrow.                            ║
+     ║                                                              ║
+     ╚══════════════════════════════════════════════════════════════╝
+     ```
+     **Stop here. Do not proceed.**
+4. If `count` < 4 → proceed, increment `count`, write updated file
+
+**After incrementing, write back `config/.usage.json`.**
+
+**Note:** The local quota file is a convenience limit — the real access gate is the Supabase auth on the edit side (bridge server). The generation limit is a soft nudge toward signup, not a hard security boundary.
+
+**Auth session file (`config/.auth-session.json`):**
+
+This file is created when a user authenticates through the bridge server. The bridge server's `/auth/login` endpoint returns a token. The SKILL.md orchestrator can check this file to verify authorization:
+
+```json
+{
+  "access_token": "<JWT>",
+  "user_email": "user@example.com",
+  "subscription_status": "active",
+  "last_verified": "ISO_DATE"
+}
+```
+
+If the file exists and `subscription_status` is `"active"`, the user has unlimited access. The orchestrator should verify the token is still valid by calling the bridge server's `/auth/verify` endpoint if the `last_verified` date is older than 24 hours.
 
 Proceed to Step 1.
 
@@ -728,6 +827,15 @@ This is prepared here and passed to the draft writer for rendering. Both sidebar
 
 ## STEPS 17-22 — WRITING + SECTION EDITING + DELIVERY (agent dispatch)
 
+These steps are handled as a single agent dispatch to the `draft-writer` agent:
+
+- **Step 17** — Write the full HTML article (structure, content, components, images, styles)
+- **Step 18** — Attach section metadata (`data-section-id`, `data-section-type`, etc.) to each content section
+- **Step 19** — Integrate the section edit UI (overlay HTML, edit triggers, auth-aware login form)
+- **Step 20** — Build the edit prompt generation JS (SECTION_EDIT builder, bridge server integration, fallback)
+- **Step 21** — Visual trust moderation (verify all trust elements, check for banned patterns)
+- **Step 22** — Final consistency pass + delivery (validate HTML, write file, generate delivery report)
+
 Dispatch the `draft-writer` agent.
 
 **Prompt template:**
@@ -810,21 +918,37 @@ write final HTML. Return ARTICLE DELIVERY REPORT.
 
 **After agent returns — auto-start bridge server:**
 
-After the draft-writer agent completes and the article is delivered, automatically start the bridge server for live section editing:
+After the draft-writer agent completes and the article is delivered, automatically start the bridge server for live section editing. This is MANDATORY — do not skip this step.
 
-1. **Check if bridge is already running:** Use Bash to run `curl -s http://127.0.0.1:19847/health 2>/dev/null` (or PowerShell equivalent). If it responds with `{"status":"ok"}`, the bridge is already running — skip to the delivery report.
+0. **Check Node.js is available:** Run `node --version` via Bash. If Node.js is not installed, inform the user:
+   ```
+   ⚠ Node.js not found — bridge server requires Node.js 18+.
+     Install from: https://nodejs.org
+     Section editing will use clipboard fallback until Node.js is available.
+   ```
+   Skip steps 1-3 and proceed to step 4 with bridge status "not started (Node.js missing)".
 
-2. **Start the bridge server:** Find `bridge/server.js` in the article-engine plugin directory (typically `.claude/plugins/article-engine/bridge/server.js`). Start it in the background:
+1. **Check if bridge is already running:** Use the Bash tool to run:
+   ```
+   curl -s http://127.0.0.1:19847/health
+   ```
+   If the response contains `"status":"ok"`, the bridge is already running — skip to step 4.
+
+2. **Start the bridge server:** Use the Bash tool with `run_in_background: true` and `timeout: 600000`:
    ```
    node "<plugin-dir>/bridge/server.js" "<project-dir>"
    ```
-   Run this in the background so it stays alive after the command completes.
+   Replace `<plugin-dir>` with the actual path to the article-engine plugin directory (find it via `bridge/server.js` glob).
+   Replace `<project-dir>` with the user's working directory.
 
-3. **Verify:** Wait 2 seconds, then check the health endpoint again. If it responds, the bridge is ready.
+3. **Verify it started:** Use the Bash tool to run:
+   ```
+   curl -s http://127.0.0.1:19847/health
+   ```
+   If the response contains `"status":"ok"`, the bridge started successfully.
+   If it fails, retry once after 2 seconds. If still failing, continue — the edit system will fall back to clipboard + `/apply-edit` command.
 
 4. **Include bridge status in the delivery report** (running / failed to start).
-
-If the bridge fails to start (Node.js not available, port in use, etc.), continue with delivery — the edit system will fall back to clipboard + `/apply-edit` command.
 
 ```
 ARTICLE DELIVERED

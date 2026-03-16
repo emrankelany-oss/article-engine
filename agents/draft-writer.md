@@ -468,6 +468,63 @@ Add to the page `<style>` block:
   filter: brightness(1.1);
 }
 
+/* ================================================================
+   AUTH — Login/Signup Panel
+   ================================================================ */
+.section-auth-panel { text-align: center; }
+.section-auth-panel h3 { margin-bottom: 8px; }
+.section-auth-panel .auth-subtitle {
+  font-size: 13px; color: var(--text-muted, #666);
+  margin-bottom: 24px; line-height: 1.5;
+}
+.auth-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--foreground, #1a1a1a);
+  background: var(--background, #fff);
+  outline: none;
+  transition: border-color 0.2s ease;
+  margin-bottom: 12px;
+}
+.auth-input:focus {
+  border-color: var(--primary, #2563eb);
+}
+.auth-input::placeholder {
+  color: var(--text-muted, #999);
+}
+.auth-actions {
+  display: flex; gap: 10px;
+  margin-top: 8px; justify-content: flex-end;
+}
+.auth-toggle {
+  font-size: 13px; color: var(--text-muted, #666);
+  margin-top: 20px;
+}
+.auth-toggle a {
+  color: var(--primary, #2563eb);
+  cursor: pointer; font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.auth-toggle a:hover { opacity: 0.8; }
+.auth-status {
+  display: none; margin-top: 16px;
+  padding: 12px 16px; border-radius: 8px;
+  font-size: 13px; line-height: 1.5; font-weight: 500;
+  text-align: left;
+}
+.auth-status.visible { display: block; }
+.auth-status--success {
+  background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;
+}
+.auth-status--error {
+  background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;
+}
+
 /* Print / non-edit mode: hide edit UI */
 @media print {
   .section-edit-trigger,
@@ -496,8 +553,25 @@ Add ONE overlay element before the closing `</body>` tag:
 ```html
 <!-- Section Edit Overlay -->
 <div class="section-edit-overlay" id="section-edit-overlay">
-  <div class="section-edit-panel">
-    <h3 id="edit-section-title">Edit Section</h3>
+  <!-- Auth Panel (shown when not logged in) -->
+  <div class="section-edit-panel section-auth-panel" id="auth-panel" style="display:none;">
+    <h3 id="auth-panel-title">Login to Edit</h3>
+    <p class="auth-subtitle">Sign in to unlock section editing.</p>
+    <input class="auth-input" type="email" id="auth-email" placeholder="Email address" autocomplete="email">
+    <input class="auth-input" type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+    <div class="auth-actions">
+      <button class="section-edit-btn section-edit-btn--cancel" id="auth-cancel-btn">Cancel</button>
+      <button class="section-edit-btn section-edit-btn--generate" id="auth-submit-btn">Login</button>
+    </div>
+    <div class="auth-status" id="auth-status"></div>
+    <p class="auth-toggle" id="auth-toggle-text">Don't have an account? <a id="auth-toggle-link">Sign up</a></p>
+  </div>
+  <!-- Edit Panel (shown when logged in) -->
+  <div class="section-edit-panel" id="edit-panel" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 id="edit-section-title">Edit Section</h3>
+      <button class="section-edit-btn section-edit-btn--cancel" id="edit-logout-btn" style="padding:4px 12px; font-size:11px;">Logout</button>
+    </div>
     <div class="section-edit-meta" id="edit-section-meta"></div>
     <textarea class="section-edit-input" id="edit-section-input"
       placeholder="Describe the change you want. Examples:&#10;• Make this section more emotional&#10;• Shorten this intro&#10;• Add stronger facts&#10;• Make the tone more professional&#10;• Replace this with a timeline style"></textarea>
@@ -520,154 +594,260 @@ Add ONE overlay element before the closing `</body>` tag:
 
 ---
 
-## PHASE H — EDIT SYSTEM LOGIC (Auto-Clipboard + /apply-edit)
+## PHASE H — EDIT SYSTEM LOGIC (Auth-Gated + Bridge Server)
 
 Add JavaScript for the edit system. Insert before the closing `</body>` tag, after the edit overlay HTML.
 
-**Flow:** When user clicks "Apply Edit", the system auto-copies the SECTION_EDIT prompt to the clipboard and shows a success message instructing them to type `/apply-edit` in Claude Code. If clipboard access fails, a fallback shows the raw prompt for manual copy.
+**Flow:** When user clicks "Edit", the system checks for an auth token in `localStorage`. If no token or token is invalid, a login form appears. After successful login (with active subscription), the edit panel shows. Edits are sent to the bridge server with the auth token. If the bridge server is down, a fallback shows the raw prompt.
 
-**IMPORTANT:** When replacing `{{ARTICLE_TOPIC}}` and `{{ARTICLE_FILENAME}}`, escape any single quotes in the value by replacing `'` with `\'` to prevent breaking the JS string literal. For example, "Manchester United's Season" becomes "Manchester United\'s Season".
+**IMPORTANT — Apostrophe Safety:** When replacing `{{ARTICLE_TOPIC}}` and `{{ARTICLE_FILENAME}}`, you MUST escape single quotes by replacing every `'` with `\'`. For example, "Manchester United's Season" → "Manchester United\\'s Season". Failure to escape will break the JS string and silently disable the entire edit system for that article. This is a REQUIRED step, not optional.
+
+The edit system JS is already included in the fallback shell template (`config/article-shell-template.html`). When using the fallback template, **SKIP** inserting this script — only replace the `{{ARTICLE_TOPIC}}` and `{{ARTICLE_FILENAME}}` tokens in the template's existing JS.
+
+When NOT using the fallback template (EXISTING or REGISTRY mode), insert this script:
 
 ```html
 <script>
 (function() {
-  const ARTICLE_TOPIC = '{{ARTICLE_TOPIC}}';
-  const ARTICLE_FILE = '{{ARTICLE_FILENAME}}';
+  var ARTICLE_TOPIC = '{{ARTICLE_TOPIC}}';
+  var ARTICLE_FILE = '{{ARTICLE_FILENAME}}';
+  var BRIDGE_URL = 'http://127.0.0.1:19847';
+  var AUTH_TOKEN_KEY = 'article-engine-token';
+
+  function getStoredToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
+  function storeToken(token) { localStorage.setItem(AUTH_TOKEN_KEY, token); }
+  function clearToken() { localStorage.removeItem(AUTH_TOKEN_KEY); }
 
   function buildEditPrompt(sectionId, sType, sRole, sPurpose, sHeading, userInput) {
     return 'SECTION_EDIT:\nUse the autonomous-article-engine skill to update section ' + sectionId + '.\n\nTopic: ' + ARTICLE_TOPIC + '\nArticle file: ' + ARTICLE_FILE + '\nSection ID: ' + sectionId + '\nSection type: ' + sType + '\nSection role: ' + sRole + '\nSection purpose: ' + sPurpose + '\nCurrent section heading: ' + sHeading + '\n\nUser requested change: ' + userInput + '\n\nRULES:\n- Update only this section unless a minimal surrounding adjustment is required for consistency\n- Preserve topic domain integrity\n- Preserve page style and component compatibility\n- Improve the section intelligently and professionally, not just literally\n- Keep the result aligned with the rest of the article\n- If the edit affects a heading, update the sidebar TOC entry to match\n- Maintain the section\'s data attributes (data-section-id, data-section-type, data-section-role)';
   }
 
-  function showEditStatus(type, html) {
+  function showEditStatus(type, msg) {
     var el = document.getElementById('edit-status');
     el.className = 'section-edit-status visible section-edit-status--' + type;
     var icon = type === 'success'
       ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
       : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-    el.innerHTML = icon + '<span class="section-edit-status-text">' + html + '</span>';
+    el.innerHTML = icon + '<span class="section-edit-status-text"></span>';
+    el.querySelector('.section-edit-status-text').textContent = msg;
   }
 
-  // Edit trigger click handlers
-  document.querySelectorAll('.section-edit-trigger').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  function showAuthStatus(type, text) {
+    var el = document.getElementById('auth-status');
+    el.className = 'auth-status visible auth-status--' + type;
+    el.textContent = text;
+  }
+
+  function showPanel(which) {
+    document.getElementById('auth-panel').style.display = which === 'auth' ? 'block' : 'none';
+    document.getElementById('edit-panel').style.display = which === 'edit' ? 'block' : 'none';
+  }
+
+  // Auth toggle between login and signup
+  var isSignup = false;
+  function handleAuthToggle() {
+    isSignup = !isSignup;
+    document.getElementById('auth-panel-title').textContent = isSignup ? 'Create Account' : 'Login to Edit';
+    document.getElementById('auth-submit-btn').textContent = isSignup ? 'Sign Up' : 'Login';
+    document.getElementById('auth-toggle-text').innerHTML = isSignup
+      ? 'Already have an account? <a id="auth-toggle-link">Login</a>'
+      : 'Don\'t have an account? <a id="auth-toggle-link">Sign up</a>';
+    document.getElementById('auth-status').className = 'auth-status';
+    document.getElementById('auth-toggle-link')?.addEventListener('click', handleAuthToggle);
+  }
+  document.getElementById('auth-toggle-link')?.addEventListener('click', handleAuthToggle);
+
+  // Auth cancel
+  document.getElementById('auth-cancel-btn')?.addEventListener('click', function() {
+    document.getElementById('section-edit-overlay').classList.remove('active');
+  });
+
+  // Auth submit
+  document.getElementById('auth-submit-btn')?.addEventListener('click', function() {
+    var email = document.getElementById('auth-email').value.trim();
+    var password = document.getElementById('auth-password').value;
+    if (!email || !password) { showAuthStatus('error', 'Please enter email and password.'); return; }
+
+    var btn = document.getElementById('auth-submit-btn');
+    btn.disabled = true;
+    btn.textContent = isSignup ? 'Creating...' : 'Logging in...';
+
+    fetch(BRIDGE_URL + (isSignup ? '/auth/signup' : '/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'success') {
+        if (isSignup) {
+          showAuthStatus('success', 'Account created! Your access is pending admin approval.');
+          btn.textContent = 'Sign Up'; btn.disabled = false;
+        } else {
+          if (data.subscription && data.subscription.status === 'active') {
+            storeToken(data.access_token);
+            showPanel('edit');
+            document.getElementById('edit-section-input')?.focus();
+          } else {
+            showAuthStatus('error', 'Your account is pending approval. Contact the admin for access.');
+            btn.textContent = 'Login'; btn.disabled = false;
+          }
+        }
+      } else {
+        showAuthStatus('error', data.error || 'Something went wrong.');
+        btn.textContent = isSignup ? 'Sign Up' : 'Login'; btn.disabled = false;
+      }
+    })
+    .catch(function() {
+      showAuthStatus('error', 'Cannot connect to bridge server. Run /start-bridge first.');
+      btn.textContent = isSignup ? 'Sign Up' : 'Login'; btn.disabled = false;
+    });
+  });
+
+  // Edit trigger — check auth before showing panel
+  document.querySelectorAll('.section-edit-trigger').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
       e.stopPropagation();
-      const sectionId = btn.getAttribute('data-edit-section');
-      const section = document.getElementById(sectionId);
+      var sectionId = btn.getAttribute('data-edit-section');
+      var section = document.getElementById(sectionId);
       if (!section) return;
 
-      const sType = section.getAttribute('data-section-type') || 'unknown';
-      const sRole = section.getAttribute('data-section-role') || 'unknown';
-      const sHeading = section.getAttribute('data-section-heading') || 'Untitled';
-      const sPurpose = section.getAttribute('data-section-purpose') || '';
+      var sType = section.getAttribute('data-section-type') || 'unknown';
+      var sRole = section.getAttribute('data-section-role') || 'unknown';
+      var sHeading = section.getAttribute('data-section-heading') || 'Untitled';
+      var sPurpose = section.getAttribute('data-section-purpose') || '';
 
       document.getElementById('edit-section-title').textContent = 'Edit: ' + sHeading;
-      document.getElementById('edit-section-meta').innerHTML =
-        '<span>' + sType + '</span>' +
-        '<span>' + sRole.substring(0, 60) + '</span>';
+      var metaEl = document.getElementById('edit-section-meta');
+      metaEl.innerHTML = '<span></span><span></span>';
+      metaEl.children[0].textContent = sType;
+      metaEl.children[1].textContent = sRole.substring(0, 60);
 
-      const overlay = document.getElementById('section-edit-overlay');
-      const input = document.getElementById('edit-section-input');
-
-      input.value = '';
-      document.getElementById('edit-status').className = 'section-edit-status';
-      document.getElementById('edit-fallback-toggle').classList.remove('visible');
-      document.getElementById('edit-prompt-result').classList.remove('visible');
-      overlay.classList.add('active');
-      input.focus();
-
+      var overlay = document.getElementById('section-edit-overlay');
       overlay.setAttribute('data-current-section', sectionId);
       overlay.setAttribute('data-current-type', sType);
       overlay.setAttribute('data-current-role', sRole);
       overlay.setAttribute('data-current-heading', sHeading);
       overlay.setAttribute('data-current-purpose', sPurpose);
+
+      // Reset
+      document.getElementById('edit-section-input').value = '';
+      document.getElementById('edit-status').className = 'section-edit-status';
+      document.getElementById('edit-fallback-toggle').classList.remove('visible');
+      document.getElementById('edit-prompt-result').classList.remove('visible');
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+      document.getElementById('auth-status').className = 'auth-status';
+
+      var token = getStoredToken();
+      if (token) {
+        fetch(BRIDGE_URL + '/auth/verify', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === 'ok' && data.subscription && data.subscription.status === 'active') {
+            showPanel('edit'); overlay.classList.add('active');
+            document.getElementById('edit-section-input').focus();
+          } else { clearToken(); showPanel('auth'); overlay.classList.add('active'); }
+        })
+        .catch(function() { clearToken(); showPanel('auth'); overlay.classList.add('active'); });
+      } else {
+        showPanel('auth'); overlay.classList.add('active');
+      }
     });
   });
 
-  // Cancel button
-  document.getElementById('edit-cancel-btn')?.addEventListener('click', () => {
+  // Logout button
+  document.getElementById('edit-logout-btn')?.addEventListener('click', function() {
+    clearToken();
+    showPanel('auth');
+  });
+
+  // Cancel (edit panel)
+  document.getElementById('edit-cancel-btn')?.addEventListener('click', function() {
     document.getElementById('section-edit-overlay').classList.remove('active');
   });
 
   // Click outside to close
-  document.getElementById('section-edit-overlay')?.addEventListener('click', (e) => {
+  document.getElementById('section-edit-overlay')?.addEventListener('click', function(e) {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
   });
 
-  // Apply Edit button — bridge server first, clipboard fallback
-  document.getElementById('edit-generate-btn')?.addEventListener('click', () => {
-    const overlay = document.getElementById('section-edit-overlay');
-    const userInput = document.getElementById('edit-section-input').value.trim();
+  // Apply Edit — send with auth token
+  document.getElementById('edit-generate-btn')?.addEventListener('click', function() {
+    var overlay = document.getElementById('section-edit-overlay');
+    var userInput = document.getElementById('edit-section-input').value.trim();
     if (!userInput) return;
 
-    const sectionId = overlay.getAttribute('data-current-section');
-    const sType = overlay.getAttribute('data-current-type');
-    const sRole = overlay.getAttribute('data-current-role');
-    const sHeading = overlay.getAttribute('data-current-heading');
-    const sPurpose = overlay.getAttribute('data-current-purpose');
-
-    const prompt = buildEditPrompt(sectionId, sType, sRole, sPurpose, sHeading, userInput);
-
-    // Store prompt for fallback display
+    var prompt = buildEditPrompt(
+      overlay.getAttribute('data-current-section'),
+      overlay.getAttribute('data-current-type'),
+      overlay.getAttribute('data-current-role'),
+      overlay.getAttribute('data-current-purpose'),
+      overlay.getAttribute('data-current-heading'),
+      userInput
+    );
+    var token = getStoredToken();
     document.getElementById('edit-prompt-text').textContent = prompt;
 
-    // Disable button to prevent double-clicks
     var btn = document.getElementById('edit-generate-btn');
-    btn.textContent = 'Sending...';
-    btn.disabled = true;
+    btn.textContent = 'Sending...'; btn.disabled = true;
 
-    // PRIMARY: Try bridge server (fully automatic)
-    fetch('http://127.0.0.1:19847/apply-edit', {
+    fetch(BRIDGE_URL + '/apply-edit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (token || '') },
       body: JSON.stringify({ prompt: prompt })
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      var httpStatus = r.status;
+      return r.json().then(function(data) { data._httpStatus = httpStatus; return data; });
+    })
     .then(function(data) {
       if (data.status === 'success') {
-        showEditStatus('success', 'Section updated automatically! Refresh the page to see changes.');
+        showEditStatus('success', 'Section updated! Refresh to see changes.');
         btn.textContent = 'Done!';
         setTimeout(function() { btn.textContent = 'Apply Edit'; btn.disabled = false; }, 4000);
       } else if (data.status === 'busy') {
-        showEditStatus('error', 'Another edit is in progress. Please wait and try again.');
-        btn.textContent = 'Apply Edit';
-        btn.disabled = false;
+        showEditStatus('error', 'Another edit is in progress. Please wait.');
+        btn.textContent = 'Apply Edit'; btn.disabled = false;
+      } else if (data._httpStatus === 401 || data._httpStatus === 403) {
+        clearToken(); showPanel('auth');
+        showAuthStatus('error', data.error || 'Session expired. Please log in again.');
+        btn.textContent = 'Apply Edit'; btn.disabled = false;
       } else {
         showEditStatus('error', 'Edit failed: ' + (data.error || 'Unknown error'));
         document.getElementById('edit-fallback-toggle').classList.add('visible');
-        btn.textContent = 'Apply Edit';
-        btn.disabled = false;
+        btn.textContent = 'Apply Edit'; btn.disabled = false;
       }
     })
     .catch(function() {
-      // FALLBACK: Bridge server not running — use clipboard
-      navigator.clipboard.writeText(prompt).then(function() {
-        showEditStatus('success', 'Bridge server not running. Edit request copied to clipboard.<br>In Claude Code, type <code>/apply-edit</code> and press Enter.<br><small>Or run <code>/start-bridge</code> first for fully automatic edits.</small>');
-        document.getElementById('edit-fallback-toggle').classList.add('visible');
-        btn.textContent = 'Copied!';
-        setTimeout(function() { btn.textContent = 'Apply Edit'; btn.disabled = false; }, 3000);
-      }).catch(function() {
-        showEditStatus('error', 'Could not connect to bridge server or copy to clipboard. Use the prompt below.');
-        document.getElementById('edit-fallback-toggle').classList.add('visible');
-        document.getElementById('edit-prompt-result').classList.add('visible');
-        btn.textContent = 'Apply Edit';
-        btn.disabled = false;
-      });
+      showEditStatus('error', 'Cannot connect to bridge server. Run /start-bridge in Claude Code.');
+      document.getElementById('edit-fallback-toggle').classList.add('visible');
+      btn.textContent = 'Apply Edit'; btn.disabled = false;
     });
   });
 
-  // Fallback toggle — show/hide raw prompt
-  document.getElementById('edit-fallback-toggle')?.addEventListener('click', () => {
+  // Fallback toggle
+  document.getElementById('edit-fallback-toggle')?.addEventListener('click', function() {
     document.getElementById('edit-prompt-result').classList.toggle('visible');
   });
 
-  // Copy button (fallback manual copy)
-  document.getElementById('edit-copy-btn')?.addEventListener('click', () => {
-    const text = document.getElementById('edit-prompt-text').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('edit-copy-btn');
-      const orig = btn.innerHTML;
+  // Copy button
+  document.getElementById('edit-copy-btn')?.addEventListener('click', function() {
+    var text = document.getElementById('edit-prompt-text').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      var btn = document.getElementById('edit-copy-btn');
+      var orig = btn.innerHTML;
       btn.textContent = 'Copied!';
-      setTimeout(() => { btn.innerHTML = orig; }, 2000);
+      setTimeout(function() { btn.innerHTML = orig; }, 2000);
+    }).catch(function() {
+      var pre = document.getElementById('edit-prompt-text');
+      var range = document.createRange();
+      range.selectNodeContents(pre);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      var btn = document.getElementById('edit-copy-btn');
+      btn.textContent = 'Selected! Press Ctrl+C';
+      setTimeout(function() { btn.innerHTML = orig; }, 3000);
     });
   });
 })();

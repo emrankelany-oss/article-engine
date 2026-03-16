@@ -1,0 +1,15 @@
+# Supabase admin key (secret — never push)
+config/.supabase-admin.json
+
+# Supabase public config (anon key is safe to share — needed for user auth)
+# config/.supabase.json is NOT gitignored — it ships with the plugin
+
+# Local state files
+config/.usage.json
+config/.auth-session.json
+config/.setup-status.json
+
+# Bridge server PID
+.claude-bridge-pid
+
+# Admin dashboard is safe to share (no secrets — uses bridge auth)
