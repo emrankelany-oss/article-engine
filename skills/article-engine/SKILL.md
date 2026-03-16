@@ -166,29 +166,53 @@ One-time ingestion from `article-components.html`. The registry is now self-cont
 
 ## STEP 0 — FIRST-TIME SETUP GATE (inline, runs once per project)
 
-Before running the pipeline, check if this is the first time the plugin is being used in this project. If so, guide the user through Gemini MCP configuration for the best experience.
+Before ANYTHING else in the pipeline, you MUST run the following Bash command. Do NOT skip this. Do NOT proceed to any other step until you have run this command and read its output.
 
-**Detection (two-phase check):**
+**MANDATORY — Run this Bash command FIRST:**
 
-Check if the file `config/.setup-status.json` exists inside the plugin directory. To find the plugin directory at runtime, locate the directory containing this skill file (the plugin root is two levels up from the SKILL.md file: `skills/article-engine/SKILL.md` → plugin root). Then check `{plugin_root}/config/.setup-status.json`.
+```bash
+node -e "
+const fs = require('fs');
+const path = require('path');
+const home = process.env.HOME || process.env.USERPROFILE;
+const claudeJson = path.join(home, '.claude.json');
+let geminiFound = false;
+try {
+  const config = JSON.parse(fs.readFileSync(claudeJson, 'utf8'));
+  const servers = config.mcpServers || {};
+  for (const [key, val] of Object.entries(servers)) {
+    if (key === 'gemini') { geminiFound = true; break; }
+    const args = (val.args || []).join(' ');
+    const cmd = val.command || '';
+    if (args.includes('gemini') || cmd.includes('gemini')) { geminiFound = true; break; }
+    const env = val.env || {};
+    if ('GEMINI_API_KEY' in env) { geminiFound = true; break; }
+  }
+} catch (e) {}
+const pluginDir = process.argv[1] || '';
+let setupDone = false;
+try {
+  const status = JSON.parse(fs.readFileSync(path.join(pluginDir, 'config', '.setup-status.json'), 'utf8'));
+  setupDone = status.setup_completed === true;
+} catch (e) {}
+if (geminiFound) {
+  console.log('[SETUP OK] Gemini MCP is configured. Proceed to Step 0.5.');
+} else if (setupDone) {
+  console.log('[SETUP STALE] Setup file says done, but Gemini MCP is NOT in ~/.claude.json. Run setup gate.');
+} else {
+  console.log('[SETUP REQUIRED] First-time run. Gemini MCP not found. Run setup gate.');
+}
+" "<PLUGIN_DIR>"
+```
 
-**Phase 1 — Status file check:**
-- If the file **does not exist** or contains `"setup_completed": false` → this is a first-time run. Execute the setup gate.
-- If the file **exists** and contains `"setup_completed": true` → proceed to Phase 2.
+Replace `<PLUGIN_DIR>` with the plugin root directory (two levels up from this SKILL.md file: `skills/article-engine/SKILL.md` → plugin root).
 
-**Phase 2 — Live Gemini verification (ALWAYS runs even if status says configured):**
+**React to the output:**
 
-Read `~/.claude.json` via Bash and check if Gemini MCP is actually present. The check must be SPECIFIC — do not assume any MCP server is Gemini. Look for ALL of these indicators:
+- `[SETUP OK]` → Skip the setup gate entirely. Proceed to Step 0.5.
+- `[SETUP REQUIRED]` or `[SETUP STALE]` → Execute the setup gate below. Do NOT skip it. The user needs Gemini configured for image generation.
 
-1. Check if `mcpServers` has a key named `"gemini"` (exact match)
-2. Check if any MCP server entry has `"gemini"` in its `command` or `args` array (e.g., `"@rlabs-inc/gemini-mcp"`, `"gemini-mcp"`)
-3. Check if any MCP server entry has `"GEMINI_API_KEY"` in its `env` object
-
-**Decision logic:**
-- If ANY of the 3 checks above find a match → Gemini is confirmed. Skip setup, proceed to Step 0.5.
-- If NONE of the 3 checks match → Gemini is NOT actually configured, even if `.setup-status.json` says it is. The status file is stale. Execute the setup gate.
-
-**IMPORTANT:** The presence of other MCP servers (Playwright, filesystem, etc.) does NOT mean Gemini is configured. You must find a Gemini-specific match.
+**IMPORTANT:** The presence of other MCP servers (Playwright, filesystem, etc.) does NOT mean Gemini is configured. Only the script output above determines this.
 
 **First-Time Setup Flow:**
 
