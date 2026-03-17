@@ -1,6 +1,6 @@
 {
   "name": "article-engine",
-  "version": "4.6.0",
+  "version": "4.6.1",
   "description": "Portable, project-agnostic article generation engine v4.6. Generates full standalone HTML article pages from minimal input by adapting to any website's design system. Features: first-time setup gate, built-in structural component registry (170+ blueprints), runtime visual adaptation, domain integrity enforcement, multi-round research via Gemini MCP, portable Gemini image generation, 4-6 images per article, graceful fallback, sidebar table of contents, visual trust layer, section editing via bridge server, topic-aware composition, and three adaptation modes. Works on any project.",
   "skills": [
     "./skills/article-engine"
