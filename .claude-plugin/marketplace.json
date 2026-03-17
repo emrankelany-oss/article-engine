@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Autonomous article generation engine for Claude Code",
-    "version": "4.6.2"
+    "version": "4.6.3"
   },
   "plugins": [
     {
@@ -15,21 +15,7 @@
       "description": "Portable, project-agnostic article generation engine. Generates full standalone HTML article pages from minimal input — with multi-round research, 4-6 AI-generated images, section-level editing, sidebar TOC, trust layer, and automatic design system adaptation. Works on any website.",
       "source": "./",
       "strict": false,
-      "skills": [
-        "../skills/article-engine"
-      ],
-      "commands": [
-        "../commands/start-bridge.md",
-        "../commands/stop-bridge.md",
-        "../commands/apply-edit.md"
-      ],
-      "agents": [
-        "../agents/project-analyzer.md",
-        "../agents/research-engine.md",
-        "../agents/article-architect.md",
-        "../agents/draft-writer.md"
-      ],
-      "version": "4.6.2",
+      "version": "4.6.3",
       "author": {
         "name": "emrankelany-oss",
         "email": "emran.kealny@gmail.com"
