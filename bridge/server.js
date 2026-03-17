@@ -394,10 +394,14 @@ const server = http.createServer(async (req, res) => {
         .catch(err => console.error('[bridge] Failed to log usage:', err.message));
 
       // Spawn claude in print mode to process the edit
+      // Strip CLAUDECODE env var to avoid "cannot be launched inside another session" error
+      const cleanEnv = { ...process.env };
+      delete cleanEnv.CLAUDECODE;
       const proc = spawn('claude', ['-p'], {
         cwd: PROJECT_DIR,
         stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true
+        shell: true,
+        env: cleanEnv
       });
 
       let stdout = '';
