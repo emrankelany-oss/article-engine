@@ -16,7 +16,18 @@
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/article-engine"
+        "../skills/article-engine"
+      ],
+      "commands": [
+        "../commands/start-bridge.md",
+        "../commands/stop-bridge.md",
+        "../commands/apply-edit.md"
+      ],
+      "agents": [
+        "../agents/project-analyzer.md",
+        "../agents/research-engine.md",
+        "../agents/article-architect.md",
+        "../agents/draft-writer.md"
       ],
       "version": "4.6.0",
       "author": {

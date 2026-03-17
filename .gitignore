@@ -12,4 +12,7 @@ config/.setup-status.json
 # Bridge server PID
 .claude-bridge-pid
 
+# Node modules
+node_modules/
+
 # Admin dashboard is safe to share (no secrets — uses bridge auth)

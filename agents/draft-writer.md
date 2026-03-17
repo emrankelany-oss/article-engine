@@ -19,7 +19,7 @@ description: >
   </example>
 model: inherit
 color: red
-tools: ["Read", "Write", "Edit", "Grep", "Glob"]
+tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 ---
 
 # Draft Writer Agent

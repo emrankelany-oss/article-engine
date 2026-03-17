@@ -305,9 +305,8 @@ This is non-blocking — the pipeline continues regardless.
    The article engine will still work — it will use web search for
    research and generate image placeholders with exportable prompts.
 
-   You can configure Gemini anytime later by running:
-     bash .claude/plugins/article-engine/setup.sh
-   Or just say "configure gemini" in any future session.
+   You can configure Gemini anytime later by saying "configure gemini" or "setup gemini"
+   in any future session.
    ```
 2. Write the setup status file with `gemini_configured: false`.
 
