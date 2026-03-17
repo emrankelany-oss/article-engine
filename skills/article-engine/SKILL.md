@@ -565,6 +565,33 @@ Also generate 4-6 IMAGE PROMPTS for Gemini image generation (see image planning 
 
 ---
 
+## STEP 9B — BLUEPRINT HISTORY SCAN (automatic)
+
+Before dispatching the architect, scan the project for existing article files to detect which blueprints have already been used. This ensures every new article gets different components.
+
+**Process:**
+1. Glob for `article-*.html` in the project root
+2. For each file found, grep for `data-section-type` and class names containing `bp-` patterns
+3. Also grep for common blueprint indicators: structural class names like `stats-cards`, `timeline`, `comparison-table`, `step-process`, `pull-quote`, `faq-accordion`, `feature-grid`, `before-after`, `checklist`, `mini-cards`, `problem-solution`, `highlight-callout`, `key-takeaways`, `numbered-list`, `two-col-text`, `data-table`, `inline-cta`, `image-caption`, `callout`, `section-heading`
+4. Build a list of previously used blueprint IDs
+
+**Output:**
+```
+PREVIOUSLY USED BLUEPRINTS:
+- article-{slug1}.html: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, ...
+- article-{slug2}.html: bp-feature-grid, bp-checklist, bp-faq-accordion, ...
+Combined unique: [list of all bp-XXX IDs used across all existing articles]
+```
+
+If no existing articles found, output:
+```
+PREVIOUSLY USED BLUEPRINTS: none (first article in project)
+```
+
+Store this for the architect dispatch.
+
+---
+
 ## STEP 10 — ARTICLE CONCEPTS (agent dispatch + user selection)
 
 Dispatch the `article-architect` agent (Phase 1).
@@ -630,8 +657,13 @@ Adaptation Mode: {adaptation_mode}
 Component inventory:
 {paste COMPONENT INVENTORY — include classification_map}
 
+PREVIOUSLY USED BLUEPRINTS:
+{paste output from Step 9B — list of bp-XXX IDs used in existing articles}
+IMPORTANT: Avoid these blueprints. Pick DIFFERENT ones from the registry to ensure
+this article looks structurally unique from existing articles on the site.
+
 REQUIREMENTS:
-1. Section sequence with component mapping
+1. Section sequence with component mapping — MAXIMIZE VARIETY (avoid previously used blueprints)
 2. TABLE OF CONTENTS with sidebar labels (skip hero, max ~40 chars per label)
 3. Minimum 8 unique component types (or all available if fewer exist)
 4. TRUST LAYER plan (minimum 4 elements)

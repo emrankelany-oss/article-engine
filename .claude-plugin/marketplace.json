@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Autonomous article generation engine for Claude Code",
-    "version": "4.6.1"
+    "version": "4.6.2"
   },
   "plugins": [
     {
@@ -29,7 +29,7 @@
         "../agents/article-architect.md",
         "../agents/draft-writer.md"
       ],
-      "version": "4.6.1",
+      "version": "4.6.2",
       "author": {
         "name": "emrankelany-oss",
         "email": "emran.kealny@gmail.com"

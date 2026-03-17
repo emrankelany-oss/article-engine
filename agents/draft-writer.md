@@ -42,9 +42,14 @@ Your process has 11 phases. Execute them in order.
 2. **Read the banned patterns file** from the plugin directory (`config/banned-patterns.md`).
 
 3. **Prepare components** based on adaptation mode:
-   - **EXISTING:** Read each component in the component map from the project's own component library file. Extract the HTML inside `.article-block-preview` (the actual component content, not the playground wrapper).
-   - **REGISTRY (default):** Read the structural blueprints from the internal registry (`config/structural-component-registry.md`). For each section in the architecture, find the assigned blueprint ID (bp-XXX) and use its structural pattern, slot definitions, and hierarchy to generate the HTML structure. Then apply the active project's design tokens (colors, fonts, spacing, radii, shadows) on top. **Never copy Axiom-specific styling** — always use the detected project tokens or fallback defaults.
+   - **EXISTING:** ONLY triggered when a dedicated component library file is provided (not existing articles). Read each component from that library file. Extract the HTML inside `.article-block-preview`.
+   - **REGISTRY (default — most common):** Read the structural blueprints from the internal registry (`config/structural-component-registry.md`). For each section in the architecture, find the assigned blueprint ID (bp-XXX) and use its structural pattern, slot definitions, and hierarchy to generate the HTML structure. Then apply the active project's design tokens (colors, fonts, spacing, radii, shadows) on top. **Never copy Axiom-specific styling** — always use the detected project tokens or fallback defaults.
    - **FALLBACK:** Same as registry mode for component structure, but also use the fallback shell template and fallback design tokens from engine-config.md.
+
+   **CRITICAL:** NEVER read existing article-*.html files to copy their component structures.
+   Existing articles are previous outputs, not component sources. Always use the blueprint
+   registry for component structures. Existing articles may only be referenced for
+   shell/layout and design token extraction.
 
 4. **Apply design tokens** to the shell:
    - Replace any existing CSS custom properties with the detected tokens

@@ -80,15 +80,18 @@ You perform 6 substeps in sequence, then output a single PROJECT INTELLIGENCE RE
    - For each component, extract: id/name, structural type, layout pattern, complexity
    - Build categories (hero, text, image, chart, table, comparison, list, cta, quote, faq, etc.)
    - Build a classification_map for up to 40 components
-4. If no dedicated component file exists, scan existing HTML pages for reusable patterns:
-   - Identify recurring section structures
-   - Identify common card/block patterns
-   - Note these as "adaptable patterns" rather than "components"
+4. If no dedicated component file exists, DO NOT scan existing article pages (article-*.html, post-*.html) for components.
+   Existing articles are NOT component libraries — they are previous outputs.
+   Only scan non-article pages (e.g., landing pages, service pages) for reusable patterns if present.
 5. Rate component availability:
-   - **rich** — dedicated component library with 20+ article-ready components
-   - **moderate** — some reusable patterns found, 5-20 adaptable blocks
-   - **sparse** — fewer than 5 reusable patterns
-   - **none** — no reusable components or patterns detected
+   - **rich** — dedicated component library file with 20+ article-ready components
+   - **moderate** — dedicated component file with 5-20 components
+   - **sparse** — fewer than 5 components in a dedicated file
+   - **none** — no dedicated component library found (this is the most common case)
+
+   **IMPORTANT:** Existing article pages (article-*.html, post-*.html, blog-post-*.html)
+   do NOT count toward component availability. They are previous outputs, not component sources.
+   Finding existing articles should result in availability: **none** unless a separate component library exists.
 
 **Output structure:**
 
@@ -111,26 +114,29 @@ COMPONENT DETECTION:
 **Decision logic:**
 
 ```
-IF explicit component file provided AND shell detected:
+IF explicit component library file provided AND shell detected:
   → MODE: EXISTING
   → Use project's own components and shell as-is
+  (Only triggers for dedicated component files like components.html, pattern-library.html)
 
-ELSE IF shell detected AND component availability is moderate+:
-  → MODE: EXISTING
-  → Use detected shell and available components
+ELSE IF shell detected (with or without existing articles):
+  → MODE: REGISTRY (default)
+  → Use detected shell for layout/wrapper, internal blueprint registry for components
+  → Existing articles inform shell and design tokens ONLY, never component selection
 
-ELSE IF shell detected AND component availability is sparse/none:
-  → MODE: REGISTRY
-  → Use detected shell, generate/adapt missing components
-
-ELSE IF no shell AND component availability is moderate+:
-  → MODE: REGISTRY
-  → Generate shell from project patterns, use available components
-
-ELSE:
+ELSE IF no shell AND no existing pages:
   → MODE: FALLBACK
-  → Generate both shell and components from fallback template
+  → Generate both shell and components from fallback template + registry
 ```
+
+**CRITICAL:** Finding existing article pages (article-*.html) should NEVER trigger EXISTING mode.
+Existing articles are used ONLY for:
+- Shell detection (page wrapper, navbar, footer structure)
+- Design token extraction (colors, fonts, spacing)
+- Writing style reference
+
+Components ALWAYS come from the internal structural registry (`config/structural-component-registry.md`)
+unless the user has a dedicated component library file.
 
 **Output:**
 
@@ -138,8 +144,11 @@ ELSE:
 ADAPTATION MODE: [EXISTING / REGISTRY / FALLBACK]
 Reasoning: [1-2 sentences explaining why this mode was selected]
 Shell source: [file path or "fallback template"]
-Component source: [file path or "internal registry" or "fallback generation"]
+Component source: [dedicated component file path or "internal registry (173 blueprints)" or "fallback generation"]
 ```
+
+**NOTE:** The most common mode is REGISTRY. EXISTING mode is rare — it requires a dedicated component library file.
+When mode is REGISTRY, set component source to "internal registry (173 blueprints)".
 
 ---
 

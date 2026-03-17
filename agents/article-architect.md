@@ -127,14 +127,28 @@ For each section:
 
 ### Component Mapping Rules
 
-- **Existing mode:** Map to real comp-XXX IDs from the project's own inventory
-- **Registry mode (default):** Map to blueprint IDs (bp-XXX) from the internal structural registry. Read `config/structural-component-registry.md` for available blueprints and their slot definitions.
+- **Existing mode:** Map to real comp-XXX IDs from the project's own dedicated component library (rare — only when user provides a component file)
+- **Registry mode (default):** Map to blueprint IDs (bp-XXX) from the internal structural registry. Read `config/structural-component-registry.md` for available blueprints and their slot definitions. This is the most common mode.
 - **Fallback mode:** Same as registry mode for components, but also use fallback design tokens
 - Minimum 8 unique blueprint/component types (or all available)
 - Never use same component type for 3+ consecutive sections
 - Use full range: hero, text, image, chart, table, quote, list, CTA, FAQ
 - Select blueprints based on topic type (see Topic-Aware Blueprint Selection above)
 - Follow the website's section rhythm
+
+### Blueprint Variation Across Articles (CRITICAL)
+
+When the prompt includes a **PREVIOUSLY USED BLUEPRINTS** list, you MUST maximize variety:
+
+1. **Read the list** of blueprint IDs used in previous articles
+2. **Avoid those blueprints** when selecting for the new article — pick different ones from the registry
+3. If a section type absolutely requires a specific blueprint (e.g., FAQ must use bp-faq-accordion), it's OK to reuse
+4. For general content sections, always pick a blueprint NOT in the previously-used list
+5. If most blueprints have been used across many articles, prioritize the **least recently used** ones
+6. The goal: every article on the site looks structurally unique while sharing the same visual design system
+
+**Example:** If previous articles used bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table:
+→ For the new article, prefer bp-feature-grid, bp-before-after, bp-step-process, bp-mini-cards, bp-problem-solution, bp-checklist, etc.
 
 ### Table of Contents (Sidebar + Inline)
 
