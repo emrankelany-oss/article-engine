@@ -17,6 +17,12 @@ const fs = require('fs');
 const path = require('path');
 const supabase = require('./supabase-client');
 
+// Strip CLAUDECODE env var immediately on startup.
+// When the bridge is started from within a Claude Code session, this var is inherited.
+// If not removed, any spawned `claude` child process will refuse to start with
+// "cannot be launched inside another Claude Code session".
+delete process.env.CLAUDECODE;
+
 const PORT = parseInt(process.env.BRIDGE_PORT || '19847', 10);
 const PROJECT_DIR = path.resolve(process.argv[2] || process.cwd());
 const TIMEOUT_MS = 180000; // 3 minutes max per edit
@@ -394,14 +400,10 @@ const server = http.createServer(async (req, res) => {
         .catch(err => console.error('[bridge] Failed to log usage:', err.message));
 
       // Spawn claude in print mode to process the edit
-      // Strip CLAUDECODE env var to avoid "cannot be launched inside another session" error
-      const cleanEnv = { ...process.env };
-      delete cleanEnv.CLAUDECODE;
       const proc = spawn('claude', ['-p'], {
         cwd: PROJECT_DIR,
         stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true,
-        env: cleanEnv
+        shell: true
       });
 
       let stdout = '';
