@@ -631,24 +631,64 @@ Also generate 4-6 IMAGE PROMPTS for Gemini image generation (see image planning 
 
 Before dispatching the architect, scan the project for existing article files to detect which blueprints have already been used. This ensures every new article gets different components.
 
+**IMPORTANT:** The draft-writer does NOT embed `bp-XXX` IDs in the generated HTML. It translates blueprints into real HTML with class names like `stats-cards`, `timeline-section`, `faq-accordion`, etc. So you must grep for the **rendered class names**, then map them back to blueprint IDs.
+
 **Process:**
-1. Glob for `article-*.html` in the project root
-2. For each file found, grep for `data-section-type` and class names containing `bp-` patterns
-3. Also grep for common blueprint indicators: structural class names like `stats-cards`, `timeline`, `comparison-table`, `step-process`, `pull-quote`, `faq-accordion`, `feature-grid`, `before-after`, `checklist`, `mini-cards`, `problem-solution`, `highlight-callout`, `key-takeaways`, `numbered-list`, `two-col-text`, `data-table`, `inline-cta`, `image-caption`, `callout`, `section-heading`
-4. Build a list of previously used blueprint IDs
+
+1. Glob for `article-*.html` in the project root (and common subdirectories like `blog/`, `pages/`, `posts/`)
+2. For each article file found, run this Bash command to extract component fingerprints:
+
+```bash
+grep -oiE '(stats-cards|comparison-table|step-process|pull-quote|data-table|before-after|highlight-callout|key-takeaways|checklist|timeline|section-heading|numbered-list|callout|image-caption|faq-accordion|feature-grid|problem-solution|inline-cta|two-col-text|mini-cards)' "<ARTICLE_FILE>" | sort -u
+```
+
+3. Map each matched class name back to its blueprint ID using this table:
+
+| Class name found in HTML | Blueprint ID |
+|---|---|
+| `stats-cards` | bp-stats-cards |
+| `comparison-table` | bp-comparison-table |
+| `step-process` | bp-step-process |
+| `pull-quote` | bp-pull-quote |
+| `data-table` | bp-data-table |
+| `before-after` | bp-before-after |
+| `highlight-callout` | bp-highlight-callout |
+| `key-takeaways` | bp-key-takeaways |
+| `checklist` | bp-checklist |
+| `timeline` | bp-timeline |
+| `section-heading` | bp-section-heading |
+| `numbered-list` | bp-numbered-list |
+| `callout` | bp-callout |
+| `image-caption` | bp-image-caption |
+| `faq-accordion` | bp-faq-accordion |
+| `feature-grid` | bp-feature-grid |
+| `problem-solution` | bp-problem-solution |
+| `inline-cta` | bp-inline-cta |
+| `two-col-text` | bp-two-col-text |
+| `mini-cards` | bp-mini-cards |
+
+4. Also check for `data-section-type` attributes which directly name the component type:
+```bash
+grep -oE 'data-section-type="[^"]*"' "<ARTICLE_FILE>" | sort -u
+```
+
+5. Combine all findings per article file.
 
 **Output:**
 ```
 PREVIOUSLY USED BLUEPRINTS:
-- article-{slug1}.html: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, ...
-- article-{slug2}.html: bp-feature-grid, bp-checklist, bp-faq-accordion, ...
-Combined unique: [list of all bp-XXX IDs used across all existing articles]
+- article-{slug1}.html: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table
+- article-{slug2}.html: bp-feature-grid, bp-checklist, bp-faq-accordion, bp-mini-cards
+Combined unique: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, bp-feature-grid, bp-checklist, bp-faq-accordion, bp-mini-cards
+Remaining unused: bp-step-process, bp-data-table, bp-before-after, bp-highlight-callout, bp-key-takeaways, bp-numbered-list, bp-callout, bp-image-caption, bp-problem-solution, bp-inline-cta, bp-two-col-text, bp-section-heading
 ```
 
 If no existing articles found, output:
 ```
 PREVIOUSLY USED BLUEPRINTS: none (first article in project)
 ```
+
+**CRITICAL:** If the grep finds ZERO matches in an existing article, that article may have been written manually (not by the plugin) or uses non-standard class names. Skip it and note: `article-{slug}.html: no blueprint fingerprints detected (manual/external article)`.
 
 Store this for the architect dispatch.
 

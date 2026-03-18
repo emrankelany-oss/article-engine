@@ -381,14 +381,30 @@ const server = http.createServer(async (req, res) => {
       const fileMatch = prompt.match(/Article file:\s*(.+?)[\r\n]/);
       if (fileMatch) {
         const articleFile = fileMatch[1].trim();
-        // Block path traversal
-        if (articleFile.includes('..') || articleFile.includes('/') || articleFile.includes('\\')) {
-          json(res, 400, { status: 'error', error: 'Invalid article file path.' });
+        // Block path traversal (.. anywhere in the path)
+        if (articleFile.includes('..')) {
+          json(res, 400, { status: 'error', error: 'Invalid article file path: path traversal not allowed.' });
+          return;
+        }
+        // Block absolute paths (must be relative to project dir)
+        if (path.isAbsolute(articleFile)) {
+          json(res, 400, { status: 'error', error: 'Invalid article file path: absolute paths not allowed.' });
           return;
         }
         // Only allow .html files
         if (!articleFile.endsWith('.html')) {
           json(res, 400, { status: 'error', error: 'Article file must be an .html file.' });
+          return;
+        }
+        // Resolve and verify the file stays within PROJECT_DIR
+        const resolvedPath = path.resolve(PROJECT_DIR, articleFile);
+        if (!resolvedPath.startsWith(path.resolve(PROJECT_DIR))) {
+          json(res, 400, { status: 'error', error: 'Invalid article file path: file must be within project directory.' });
+          return;
+        }
+        // Check file exists
+        if (!fs.existsSync(resolvedPath)) {
+          json(res, 400, { status: 'error', error: 'Article file not found: ' + articleFile + '. Check that the file exists in your project directory.' });
           return;
         }
       }

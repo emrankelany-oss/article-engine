@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "Autonomous article generation engine for Claude Code",
-    "version": "4.6.5"
+    "version": "4.6.6"
   },
   "plugins": [
     {
@@ -15,7 +15,7 @@
       "description": "Portable, project-agnostic article generation engine. Generates full standalone HTML article pages from minimal input — with multi-round research, 4-6 AI-generated images, section-level editing, sidebar TOC, trust layer, and automatic design system adaptation. Works on any website.",
       "source": "./",
       "strict": false,
-      "version": "4.6.5",
+      "version": "4.6.6",
       "author": {
         "name": "emrankelany-oss",
         "email": "emran.kealny@gmail.com"
