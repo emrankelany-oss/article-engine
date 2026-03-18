@@ -74,7 +74,7 @@ Write Article → Attach Section Metadata → Integrate Section Edit UI →
 Build Edit Prompt Logic → Visual Trust Moderation → Final Consistency Pass → Deliver HTML
 ```
 
-Steps 0-22, grouped into agent dispatches. Step 0 (First-Time Setup Gate) runs once per project. Step 0.5 (Quota Check) runs every time. Step 13 (Gemini Capability Check) is for portability.
+Steps 0-22, grouped into agent dispatches. Step 0 (First-Time Setup Gate) runs once per project. Step 0.1 (Claude CLI Check) runs EVERY time. Step 0.5 (Quota Check) runs every time. Step 13 (Gemini Capability Check) is for portability.
 
 ### Progress Messages
 
@@ -97,6 +97,7 @@ Show these at the start of each phase:
 
 ### Existing Modules
 - First-Time Setup Gate
+- Claude CLI Check (every run)
 - Input Normalizer
 - Topic Domain Classifier
 - Current Project Shell Detector
@@ -196,7 +197,7 @@ try {
   setupDone = status.setup_completed === true;
 } catch (e) {}
 if (geminiFound) {
-  console.log('[SETUP OK] Gemini MCP is configured. Proceed to Step 0.5.');
+  console.log('[SETUP OK] Gemini MCP is configured. Proceed to Step 0.1.');
 } else if (setupDone) {
   console.log('[SETUP STALE] Setup file says done, but Gemini MCP is NOT in ~/.claude.json. Run setup gate.');
 } else {
@@ -209,7 +210,7 @@ Replace `<PLUGIN_DIR>` with the plugin root directory (two levels up from this S
 
 **React to the output:**
 
-- `[SETUP OK]` → Skip the setup gate entirely. Proceed to Step 0.5.
+- `[SETUP OK]` → Skip the setup gate entirely. Proceed to Step 0.1 (Claude CLI check).
 - `[SETUP REQUIRED]` or `[SETUP STALE]` → Execute the setup gate below. Do NOT skip it. The user needs Gemini configured for image generation.
 
 **IMPORTANT:** The presence of other MCP servers (Playwright, filesystem, etc.) does NOT mean Gemini is configured. Only the script output above determines this.
@@ -244,19 +245,7 @@ Would you like to configure Gemini MCP now?
 
 **WAIT for user response.**
 
-**Before proceeding with either option — Claude CLI check:**
-
-Check if the `claude` CLI is available by running `claude --version` via Bash. If NOT found:
-
-1. Inform the user:
-   ```
-   Installing Claude CLI for automatic section editing...
-   ```
-2. Run: `npm install -g @anthropic-ai/claude-code`
-3. If successful: `✓ Claude CLI installed — browser edits will be fully automatic`
-4. If failed: `⚠ Claude CLI not installed — section editing will use clipboard fallback. You can install it later: npm install -g @anthropic-ai/claude-code`
-
-This is non-blocking — the pipeline continues regardless.
+**NOTE:** The Claude CLI check has been moved to Step 0.1 (runs independently every time). Do NOT check for Claude CLI here — it is handled separately.
 
 **If user chooses YES (option 1):**
 
@@ -320,8 +309,6 @@ After either path, write this file:
   "setup_date": "<ISO_DATE>",
   "gemini_configured": true | false,
   "gemini_setup_method": "interactive" | "skipped",
-  "claude_cli_installed": true | false,
-  "bridge_editing": "automatic" | "clipboard_fallback",
   "notes": "<any relevant notes>"
 }
 ```
@@ -342,11 +329,86 @@ SETUP STATUS
 Gemini MCP: [configured / skipped]
 Image generation: [available after restart / fallback mode]
 Research: [Gemini + web search / web search only]
-Claude CLI: [installed — automatic editing / not installed — clipboard fallback]
-Section editing: [fully automatic via bridge server / clipboard + /apply-edit]
-Status: ready to proceed
+Status: ready → proceeding to Claude CLI check (Step 0.1)
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+Proceed to Step 0.1.
+
+---
+
+## STEP 0.1 — CLAUDE CLI CHECK (inline, runs EVERY time)
+
+This step runs on EVERY pipeline execution — regardless of whether the setup gate was skipped. The Claude CLI is required by the bridge server to process browser-based section edits. Without it, the edit system falls back to clipboard mode.
+
+**MANDATORY — Run this Bash command:**
+
+```bash
+claude --version 2>/dev/null
+```
+
+**React to the output:**
+
+- **If the command succeeds** (prints a version string like `claude 1.x.x`):
+  ```
+  ✓ Claude CLI detected — section editing will be fully automatic via bridge server.
+  ```
+  Store internally: `cli_available = true`. Proceed to Step 0.5.
+
+- **If the command fails** (command not found, error, or empty output):
+
+  **Do NOT silently skip this.** Inform the user clearly:
+
+  ```
+  ⚠ CLAUDE CLI NOT FOUND
+  ━━━━━━━━━━━━━━━━━━━━━━━━━
+  The Claude CLI is required for automatic section editing via the
+  bridge server. Without it, browser edits will use clipboard fallback.
+
+  The Claude CLI is usually installed automatically with Claude Code.
+  If you're running Claude Code in VS Code, the CLI should already be
+  available. This error may indicate:
+
+    • Claude Code was installed via VS Code extension only (CLI not on PATH)
+    • Global npm packages are not on your system PATH
+    • You're on a restricted system without global install permissions
+
+  Would you like me to try installing it now?
+    1. YES — Run: npm install -g @anthropic-ai/claude-code
+    2. SKIP — Continue without automatic editing (clipboard fallback)
+  ```
+
+  **WAIT for user response.**
+
+  - **If YES:**
+    1. Run: `npm install -g @anthropic-ai/claude-code`
+    2. Verify: `claude --version 2>/dev/null`
+    3. If verification succeeds: `✓ Claude CLI installed successfully — automatic editing enabled.`
+       Store: `cli_available = true`
+    4. If verification fails: `⚠ Installation completed but CLI still not found on PATH. Section editing will use clipboard fallback. You may need to restart your terminal or add npm global bin to your PATH.`
+       Store: `cli_available = false`
+
+  - **If SKIP:**
+    ```
+    ✓ Skipping Claude CLI installation.
+    Section editing will use clipboard fallback mode.
+    You can install it anytime: npm install -g @anthropic-ai/claude-code
+    ```
+    Store: `cli_available = false`
+
+**IMPORTANT — Windows-specific:**
+
+On Windows, `claude --version` may fail even when the CLI is installed because:
+- The CLI is installed as a `.cmd` shim (not a native binary)
+- The current shell session may not have the PATH updated
+
+If the first check fails on Windows, also try:
+```bash
+claude.cmd --version 2>/dev/null
+```
+If `claude.cmd` succeeds, the CLI IS available — store `cli_available = true` and proceed.
+
+**This step is non-blocking** — the pipeline continues regardless. But the user MUST be informed of the result so they know whether browser editing will work automatically.
 
 Proceed to Step 0.5.
 
