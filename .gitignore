@@ -8,6 +8,7 @@ config/.supabase-admin.json
 config/.usage.json
 config/.auth-session.json
 config/.setup-status.json
+config/.blueprint-history.json
 
 # Bridge server PID
 .claude-bridge-pid

@@ -25,7 +25,7 @@ delete process.env.CLAUDECODE;
 
 const PORT = parseInt(process.env.BRIDGE_PORT || '19847', 10);
 const PROJECT_DIR = path.resolve(process.argv[2] || process.cwd());
-const TIMEOUT_MS = 180000; // 3 minutes max per edit
+const TIMEOUT_MS = 600000; // 10 minutes max per edit
 
 let activeEdit = null;
 
@@ -437,7 +437,7 @@ const server = http.createServer(async (req, res) => {
           proc.kill('SIGTERM');
           activeEdit = null;
           if (!res.writableEnded) {
-            json(res, 504, { status: 'timeout', error: 'Edit timed out after 3 minutes' });
+            json(res, 504, { status: 'timeout', error: 'Edit timed out after 10 minutes' });
           }
         }
       }, TIMEOUT_MS);

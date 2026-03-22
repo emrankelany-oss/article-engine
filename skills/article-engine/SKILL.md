@@ -631,49 +631,37 @@ Also generate 4-6 IMAGE PROMPTS for Gemini image generation (see image planning 
 
 ---
 
-## STEP 9B — BLUEPRINT HISTORY SCAN (automatic)
+## STEP 9B — BLUEPRINT HISTORY CHECK (automatic)
 
-Before dispatching the architect, scan the project for existing article files to detect which blueprints have already been used. This ensures every new article gets structurally different components.
+Before dispatching the architect, read the blueprint history file to know which blueprints were used in recent articles. This ensures every new article gets structurally different components.
 
-**How it works:** The draft-writer embeds a `data-blueprint="bp-xxx"` attribute on every section wrapper in the generated HTML. This makes detection simple and reliable — no class-name guessing or mapping tables needed. The scan works for ALL 190 blueprints automatically.
+**How it works:** The pipeline maintains a lightweight history file at `config/.blueprint-history.json` that tracks blueprints used in the last 5 articles. The file is local state (gitignored) — each user builds their own history as they generate articles.
 
 **Process:**
 
-1. Glob for `article-*.html` in the project root (and common subdirectories like `blog/`, `pages/`, `posts/`)
-2. For each article file found, extract all blueprint IDs using this Grep:
-
-```bash
-grep -oE 'data-blueprint="bp-[a-z0-9-]+"' "<ARTICLE_FILE>" | sed 's/data-blueprint="//;s/"//' | sort -u
-```
-
-This directly extracts blueprint IDs like `bp-stats-cards`, `bp-donut-chart-legend`, `bp-hub-spoke-diagram`, etc.
-
-3. If the `data-blueprint` grep finds ZERO matches, the article may be older (pre-v4.6.6) or manually written. As a fallback, try the `data-section-type` attribute:
-```bash
-grep -oE 'data-section-type="[^"]*"' "<ARTICLE_FILE>" | sort -u
-```
-Note these as approximate matches only — `data-section-type` contains section types (e.g., "content-block"), not blueprint IDs.
-
-4. Combine all findings per article file.
+1. Read `config/.blueprint-history.json` from the plugin directory
+2. If the file doesn't exist or is empty (`"history": []`), create it — this is the first article, all 190 blueprints are available
+3. Extract all blueprint IDs from the history entries and combine into one exclusion list
+4. The history keeps only the last 5 articles. If there are more than 5 entries, ignore the oldest ones
 
 **Output:**
 ```
-PREVIOUSLY USED BLUEPRINTS:
-- article-{slug1}.html: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, bp-donut-chart-legend
-- article-{slug2}.html: bp-feature-grid, bp-checklist, bp-faq-accordion, bp-hub-spoke-diagram, bp-gauge-chart
-Combined unique: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, bp-donut-chart-legend, bp-feature-grid, bp-checklist, bp-faq-accordion, bp-hub-spoke-diagram, bp-gauge-chart
-Total used: 10 of 190 available
+RECENT BLUEPRINT HISTORY:
+- [article-file-1]: bp-stats-cards, bp-timeline, bp-pull-quote (8 blueprints)
+- [article-file-2]: bp-feature-grid, bp-checklist, bp-faq-accordion (9 blueprints)
+Excluded (recent): [combined unique list]
+Available: [190 minus excluded count] of 190
 ```
 
-If no existing articles found, output:
+If history is empty:
 ```
-PREVIOUSLY USED BLUEPRINTS: none (first article in project)
-Total used: 0 of 190 available
+RECENT BLUEPRINT HISTORY: none (first article — all 190 blueprints available)
+Available: 190 of 190
 ```
 
-**CRITICAL:** The "Total used: X of 190" line helps the architect understand how much of the registry is still untapped. With 190 blueprints available, there should be massive variety across articles.
+Store the exclusion list for the architect dispatch.
 
-Store this for the architect dispatch.
+**IMPORTANT:** After the article is delivered (end of Step 22), the pipeline MUST append the new article's blueprints to the history file. See "Post-Delivery: Update Blueprint History" below Step 22.
 
 ---
 
@@ -742,19 +730,24 @@ Adaptation Mode: {adaptation_mode}
 Component inventory:
 {paste COMPONENT INVENTORY — include classification_map}
 
-PREVIOUSLY USED BLUEPRINTS:
-{paste output from Step 9B — list of bp-XXX IDs used in existing articles}
-IMPORTANT: Avoid these blueprints. Pick DIFFERENT ones from the registry to ensure
-this article looks structurally unique from existing articles on the site.
+BLUEPRINT SELECTION — RANDOM WITH EXCLUSION:
+{paste exclusion list from Step 9B}
+RULES:
+- Read the structural component registry (config/structural-component-registry.md) for all available blueprints
+- EXCLUDE the blueprints in the exclusion list above (used in last 5 articles)
+- From the remaining available pool, RANDOMLY select 8-10 blueprints that fit the topic
+  - 8 for narrative/editorial topics
+  - 9-10 for data-heavy/analytical topics
+- Selection must be RANDOM — do not always pick the same "safe" blueprints
+- Each blueprint must genuinely fit a section's content purpose (no forcing)
 
 REQUIREMENTS:
-1. Section sequence with component mapping — MAXIMIZE VARIETY (avoid previously used blueprints)
+1. Section sequence with 8-10 component types — RANDOMLY selected from available pool (excluding recent history)
 2. TABLE OF CONTENTS with sidebar labels (skip hero, max ~40 chars per label)
-3. Minimum 8 unique component types (or all available if fewer exist)
-4. TRUST LAYER plan (minimum 4 elements)
-5. Image placement plan (4-6 sections marked for images)
-6. Two-column layout: hero full-width, content + sidebar TOC in grid
-7. SECTION METADATA for each section (id, type, role, content purpose) for edit system
+3. TRUST LAYER plan (minimum 4 elements)
+4. Image placement plan (4-6 sections marked for images)
+5. Two-column layout: hero full-width, content + sidebar TOC in grid
+6. SECTION METADATA for each section (id, type, role, content purpose) for edit system
 ```
 
 **After agent returns:**
@@ -1145,6 +1138,25 @@ Next steps (optional):
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+**Post-Delivery: Update Blueprint History**
+
+After the delivery report is shown, update the blueprint history file so the next article avoids these blueprints:
+
+1. Read `config/.blueprint-history.json` from the plugin directory
+2. If the file doesn't exist, create it with `{ "history": [] }`
+3. Append a new entry:
+   ```json
+   {
+     "file": "{output_filename}",
+     "date": "{YYYY-MM-DD}",
+     "blueprints": ["{bp-id-1}", "{bp-id-2}", "..."]
+   }
+   ```
+4. If the history array has more than 5 entries, remove the oldest ones (keep only the last 5)
+5. Write the updated file back
+
+This is automatic and silent — no output to the user.
+
 ---
 
 ## SECTION EDIT MODE
@@ -1293,7 +1305,7 @@ If neighboring changes are needed, keep them minimal and explicit.
 - Max 6 research rounds
 - Exactly 5 article concepts
 - Max 5 writing samples read
-- Min 8 unique component types per article (or all available if fewer)
+- 8-10 unique component types per article (8 for narrative topics, up to 10 for data-heavy topics)
 - Min 4 generated images, max 6 (if Gemini available)
 - Sidebar TOC required for 5+ section articles (sticky desktop + inline mobile)
 - Sidebar TOC must match final headings exactly
