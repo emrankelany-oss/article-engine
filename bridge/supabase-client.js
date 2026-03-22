@@ -11,16 +11,33 @@ const path = require('path');
 let _config = null;
 let _configMtime = 0;
 
+// Default Supabase config (public anon key — safe to embed, RLS-protected).
+// Used as fallback when .supabase.json is missing (e.g. after plugin update).
+const DEFAULT_CONFIG = {
+  url: 'https://vyljszbmbortwhbzqywj.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bGpzemJtYm9ydHdoYnpxeXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTQxNTEsImV4cCI6MjA4OTE3MDE1MX0.sAyfmC2LXpJ9OlxibY0VOGxsety9U8s4QTitw5J7U7Q'
+};
+
 /**
  * Load Supabase config from .supabase.json
  * Re-reads the file if it has been modified since last load.
+ * If the file is missing or corrupt, restores it from defaults automatically.
  */
 function loadConfig() {
   const configPath = path.join(__dirname, '..', 'config', '.supabase.json');
   if (!fs.existsSync(configPath)) {
-    _config = null;
-    _configMtime = 0;
-    return null;
+    // Auto-restore config from defaults
+    try {
+      const configDir = path.dirname(configPath);
+      if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2));
+      console.log('[supabase] Config file missing — restored from defaults');
+    } catch (writeErr) {
+      console.error('[supabase] Could not restore .supabase.json:', writeErr.message);
+      // Still return defaults in memory even if file write fails
+      _config = DEFAULT_CONFIG;
+      return _config;
+    }
   }
   try {
     const stat = fs.statSync(configPath);
@@ -29,7 +46,9 @@ function loadConfig() {
     _configMtime = stat.mtimeMs;
   } catch (e) {
     console.error('[supabase] Failed to parse .supabase.json:', e.message);
-    return null;
+    // Fall back to defaults if file is corrupt
+    _config = DEFAULT_CONFIG;
+    return _config;
   }
   return _config;
 }

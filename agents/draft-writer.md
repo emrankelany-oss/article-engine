@@ -207,10 +207,13 @@ For every editable section, add data attributes to the section wrapper element.
   data-section-role="{role}"
   data-section-heading="{heading}"
   data-section-purpose="{purpose}"
+  data-blueprint="{bp-xxx}"
 >
   <!-- section content -->
 </section>
 ```
+
+**CRITICAL:** The `data-blueprint` attribute MUST contain the exact blueprint ID (e.g., `bp-stats-cards`, `bp-donut-chart-legend`, `bp-hub-spoke-diagram`) from the architecture's component mapping. This attribute is used by the Blueprint History Scan (Step 9B) to detect which blueprints have been used across articles and ensure variety.
 
 **Section types** (from architecture metadata):
 - `hero` — the hero/intro visual section
@@ -224,7 +227,7 @@ For every editable section, add data attributes to the section wrapper element.
 - `conclusion` — closing/summary section
 - `expert-insight` — expert quotes or analysis
 
-Every section must have all four `data-section-*` attributes. These are stable identifiers used by the edit system.
+Every section must have all four `data-section-*` attributes plus the `data-blueprint` attribute. The `data-section-*` attributes are stable identifiers used by the edit system. The `data-blueprint` attribute records which blueprint was used, enabling the Blueprint History Scan to ensure variety across articles.
 
 ---
 

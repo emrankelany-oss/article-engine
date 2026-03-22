@@ -6445,3 +6445,874 @@ responsive_behavior:
 image_compatibility: icons only
 sidebar_compatibility: works in main column
 ```
+
+---
+
+### BP-171: Overlapping Image Cards
+
+```
+blueprint_id: bp-overlapping-image-cards
+blueprint_name: Overlapping Image Cards
+category: visual-content
+article_role: Display overlapping image cards with text overlays for visual storytelling
+
+structural_pattern:
+  - section container
+  - overlapping card stack (2-3 cards):
+    - each card (positioned with offset/overlap):
+      - background image (cover)
+      - gradient overlay (bottom)
+      - card content overlay:
+        - label/tag (small, uppercase)
+        - title (h3/h4)
+        - short description (paragraph)
+
+slot_definitions:
+  - CARDS[]: array of {image_url, label?, title, description?} (2-3 items)
+
+hierarchy:
+  section > card-stack > card*N
+  card > [image + gradient-overlay + content > (label? + h3 + p?)]
+
+required_elements: [at least 2 CARDS with image and title]
+optional_elements: [labels, descriptions, gradient overlays]
+
+responsive_behavior:
+  - desktop: overlapping layout with offset positioning
+  - tablet: reduced overlap
+  - mobile: stacked vertically, no overlap
+
+image_compatibility: requires images
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-172: Line Chart SVG
+
+```
+blueprint_id: bp-line-chart-svg
+blueprint_name: Line Chart SVG
+category: data-visualization
+article_role: Display trend data as an SVG line chart with labeled axes
+
+structural_pattern:
+  - section heading (h2)
+  - chart container (bordered, padded):
+    - SVG element:
+      - x-axis with labels
+      - y-axis with labels
+      - grid lines (horizontal)
+      - line path (data series)
+      - data point markers (circles)
+      - optional tooltip markers
+    - optional legend below chart
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - CHART_DATA: {x_labels[], y_labels[], data_points[]}
+  - LEGEND?: array of {color, label}
+
+hierarchy:
+  section > [h2 + chart-container > svg + legend?]
+  svg > [axes + gridlines + path + markers]
+
+required_elements: [SVG with at least one data series, axis labels]
+optional_elements: [SECTION_HEADING, legend, tooltips, grid lines]
+
+responsive_behavior:
+  - desktop: full-width chart
+  - tablet: scaled proportionally
+  - mobile: horizontal scroll or simplified view
+
+image_compatibility: none (SVG-based)
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-173: Regulatory Requirements Table
+
+```
+blueprint_id: bp-regulatory-requirements-table
+blueprint_name: Regulatory Requirements Table
+category: tabular-data
+article_role: Present regulatory or compliance requirements in a structured table format
+
+structural_pattern:
+  - section heading (h2)
+  - descriptive paragraph
+  - table container (bordered, striped rows):
+    - table header row (dark background):
+      - columns: Requirement, Description, Status/Compliance, Deadline
+    - table body rows:
+      - requirement name (bold)
+      - description text
+      - status indicator (badge/icon)
+      - deadline or date
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - DESCRIPTION?: introductory paragraph
+  - TABLE_HEADERS[]: column header labels
+  - TABLE_ROWS[]: array of {requirement, description, status, deadline?}
+
+hierarchy:
+  section > [h2 + p? + table-container > table > thead + tbody]
+  tbody > tr*N > td*columns
+
+required_elements: [table with headers and at least 3 data rows]
+optional_elements: [SECTION_HEADING, DESCRIPTION, status badges]
+
+responsive_behavior:
+  - desktop: full table layout
+  - tablet: horizontal scroll
+  - mobile: horizontal scroll or card-based layout
+
+image_compatibility: status icons only
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-174: Integration Pipeline
+
+```
+blueprint_id: bp-integration-pipeline
+blueprint_name: Integration Pipeline
+category: process-flow
+article_role: Visualize a multi-stage integration or data pipeline with connected nodes
+
+structural_pattern:
+  - section heading (h2)
+  - pipeline container (horizontal flow):
+    - pipeline stages (3-5 nodes):
+      - each stage node (bordered, padded):
+        - stage icon or number
+        - stage title (h4)
+        - stage description (short)
+      - connector arrow between stages
+    - optional data flow labels on connectors
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - STAGES[]: array of {icon?, number?, title, description} (3-5 items)
+  - CONNECTOR_LABELS?[]: labels for arrows between stages
+
+hierarchy:
+  section > [h2 + pipeline > (stage-node + connector)*N]
+  stage-node > [icon/number + h4 + p]
+
+required_elements: [at least 3 STAGES with titles, connectors between them]
+optional_elements: [SECTION_HEADING, icons, connector labels, descriptions]
+
+responsive_behavior:
+  - desktop: horizontal pipeline with arrows
+  - tablet: horizontal with reduced spacing
+  - mobile: vertical pipeline with downward arrows
+
+image_compatibility: icons only
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-175: Stat Quote Hybrid
+
+```
+blueprint_id: bp-stat-quote-hybrid
+blueprint_name: Stat Quote Hybrid
+category: emphasis-content
+article_role: Combine a large statistic with a supporting quote for maximum impact
+
+structural_pattern:
+  - section container (accent background or bordered):
+    - two-column layout:
+      - left column (stat side):
+        - large number/percentage (oversized font)
+        - stat label (small text below)
+      - right column (quote side):
+        - blockquote text (large, italic)
+        - attribution (name, title, company)
+
+slot_definitions:
+  - STAT_VALUE: large number or percentage
+  - STAT_LABEL: description of what the stat measures
+  - QUOTE_TEXT: supporting quote text
+  - ATTRIBUTION: {name, title?, company?}
+
+hierarchy:
+  section > two-col > [stat-col > (number + label)] + [quote-col > (blockquote + attribution)]
+
+required_elements: [STAT_VALUE, STAT_LABEL, QUOTE_TEXT]
+optional_elements: [ATTRIBUTION, accent background]
+
+responsive_behavior:
+  - desktop: two-column side by side
+  - tablet: two-column with reduced widths
+  - mobile: stacked (stat on top, quote below)
+
+image_compatibility: none
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-176: Benefit Highlights Grid
+
+```
+blueprint_id: bp-benefit-highlights-grid
+blueprint_name: Benefit Highlights Grid
+category: feature-showcase
+article_role: Display key benefits or features in an icon-driven grid layout
+
+structural_pattern:
+  - section heading (h2)
+  - optional subheading paragraph
+  - grid container (3-column):
+    - each benefit card (padded, optional border):
+      - icon (top, centered or left-aligned)
+      - benefit title (h4)
+      - benefit description (paragraph)
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - SUBHEADING?: introductory paragraph
+  - BENEFITS[]: array of {icon, title, description} (3-9 items)
+
+hierarchy:
+  section > [h2 + p? + grid > benefit-card*N]
+  benefit-card > [icon + h4 + p]
+
+required_elements: [at least 3 BENEFITS with title and description]
+optional_elements: [SECTION_HEADING, SUBHEADING, icons]
+
+responsive_behavior:
+  - desktop: 3-column grid
+  - tablet: 2-column grid
+  - mobile: single column
+
+image_compatibility: icons only
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-177: Gauge Chart
+
+```
+blueprint_id: bp-gauge-chart
+blueprint_name: Gauge Chart
+category: data-visualization
+article_role: Display a single metric as a semi-circular gauge/meter visualization
+
+structural_pattern:
+  - section container:
+    - optional heading (h3)
+    - gauge container (centered):
+      - SVG semi-circle arc:
+        - background arc (gray/muted)
+        - value arc (colored, partial fill)
+        - center value text (large number)
+        - unit label (below number)
+      - optional min/max labels at arc ends
+    - optional description paragraph below
+
+slot_definitions:
+  - HEADING?: h3 title
+  - GAUGE_VALUE: current value (number)
+  - GAUGE_MAX: maximum value
+  - UNIT_LABEL?: unit text (%, pts, etc.)
+  - DESCRIPTION?: explanatory paragraph
+
+hierarchy:
+  section > [h3? + gauge-container > svg + description?]
+  svg > [bg-arc + value-arc + center-text + labels?]
+
+required_elements: [SVG gauge with value arc and center number]
+optional_elements: [HEADING, UNIT_LABEL, min/max labels, DESCRIPTION]
+
+responsive_behavior:
+  - desktop: centered gauge, medium size
+  - tablet: scaled proportionally
+  - mobile: full-width gauge
+
+image_compatibility: none (SVG-based)
+sidebar_compatibility: works in main column or sidebar
+```
+
+---
+
+### BP-178: Decision Tree
+
+```
+blueprint_id: bp-decision-tree
+blueprint_name: Decision Tree
+category: interactive-content
+article_role: Display a decision-making flowchart with branching yes/no paths
+
+structural_pattern:
+  - section heading (h2)
+  - tree container:
+    - root question node (highlighted, centered):
+      - question text
+    - branch connectors (lines/arrows):
+      - yes branch (left or right)
+      - no branch (opposite side)
+    - child decision nodes:
+      - question or outcome text
+      - further branches or terminal nodes
+    - terminal/outcome nodes (distinct style):
+      - result text
+      - optional icon (checkmark, x, etc.)
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - ROOT_QUESTION: starting question text
+  - BRANCHES[]: recursive array of {question, yes_path, no_path}
+  - OUTCOMES[]: terminal results
+
+hierarchy:
+  section > [h2 + tree > root-node > (branch > child-node)*N]
+  child-node > [question + yes/no branches] OR [outcome]
+
+required_elements: [ROOT_QUESTION, at least 2 branches, at least 2 OUTCOMES]
+optional_elements: [SECTION_HEADING, icons on outcomes, connector labels]
+
+responsive_behavior:
+  - desktop: full tree layout with branches
+  - tablet: simplified tree or vertical layout
+  - mobile: vertical step-by-step layout
+
+image_compatibility: icons only
+sidebar_compatibility: works in main column only
+```
+
+---
+
+### BP-179: Map Infographic
+
+```
+blueprint_id: bp-map-infographic
+blueprint_name: Map Infographic
+category: data-visualization
+article_role: Display geographic data using a stylized map with data markers
+
+structural_pattern:
+  - section heading (h2)
+  - map container (bordered):
+    - SVG or image map:
+      - region shapes or map background
+      - data markers/pins at locations:
+        - marker icon
+        - tooltip or label
+      - optional legend/key
+    - optional stats sidebar or bottom strip:
+      - location-based statistics
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - MAP_IMAGE: SVG map or background image
+  - MARKERS[]: array of {location, label, value?, icon?}
+  - LEGEND?: color/icon key
+  - STATS[]?: location-based statistics
+
+hierarchy:
+  section > [h2 + map-container > (map + markers + legend?)]
+  map-container > [svg/img + marker*N + legend? + stats-strip?]
+
+required_elements: [map visual with at least 3 MARKERS]
+optional_elements: [SECTION_HEADING, LEGEND, STATS, tooltips]
+
+responsive_behavior:
+  - desktop: full map with all markers visible
+  - tablet: scaled map
+  - mobile: simplified map or list view of locations
+
+image_compatibility: requires map image or SVG
+sidebar_compatibility: works in main column only
+```
+
+---
+
+### BP-180: Vertical Bar Chart
+
+```
+blueprint_id: bp-vertical-bar-chart
+blueprint_name: Vertical Bar Chart
+category: data-visualization
+article_role: Display comparative data as vertical bars with labeled axes
+
+structural_pattern:
+  - section heading (h2)
+  - chart container (bordered, padded):
+    - SVG or CSS-based chart:
+      - y-axis with value labels
+      - x-axis with category labels
+      - vertical bars (colored, varying heights):
+        - bar fill (proportional to value)
+        - value label (on top or inside bar)
+      - optional grid lines (horizontal)
+    - optional legend for multi-series data
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - CHART_DATA: {categories[], values[], colors?[]}
+  - Y_AXIS_LABEL?: axis description
+  - LEGEND?: array of {color, label} for multi-series
+
+hierarchy:
+  section > [h2 + chart-container > chart + legend?]
+  chart > [y-axis + x-axis + bars*N + gridlines?]
+
+required_elements: [at least 3 bars with category labels and values]
+optional_elements: [SECTION_HEADING, Y_AXIS_LABEL, legend, grid lines]
+
+responsive_behavior:
+  - desktop: full-width chart
+  - tablet: scaled proportionally
+  - mobile: horizontal scroll or simplified bars
+
+image_compatibility: none (SVG/CSS-based)
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-181: Revenue Breakdown Metrics
+
+```
+blueprint_id: bp-revenue-breakdown-metrics
+blueprint_name: Revenue Breakdown Metrics
+category: data-display
+article_role: Display revenue or financial breakdown with large numbers and category splits
+
+structural_pattern:
+  - section heading (h2)
+  - metrics container:
+    - hero metric (centered, large):
+      - large number (total revenue/value)
+      - label text
+    - breakdown grid (3-4 columns):
+      - each category card:
+        - category icon or color indicator
+        - category label
+        - amount/value (bold)
+        - percentage or change indicator
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - HERO_METRIC: {value, label}
+  - BREAKDOWN[]: array of {icon?, label, value, percentage?} (3-6 items)
+
+hierarchy:
+  section > [h2 + hero-metric + breakdown-grid > card*N]
+  card > [icon? + label + value + percentage?]
+
+required_elements: [HERO_METRIC, at least 3 BREAKDOWN categories]
+optional_elements: [SECTION_HEADING, icons, percentage indicators]
+
+responsive_behavior:
+  - desktop: hero metric above, 3-4 column grid below
+  - tablet: 2-column breakdown grid
+  - mobile: single column, stacked cards
+
+image_compatibility: icons only
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-182: Bordered Quote Card
+
+```
+blueprint_id: bp-bordered-quote-card
+blueprint_name: Bordered Quote Card
+category: emphasis-content
+article_role: Display a prominent quote with decorative border treatment
+
+structural_pattern:
+  - quote container (thick left border or full border, padded):
+    - optional quote icon (large quotation marks)
+    - quote text (large, italic or weighted)
+    - attribution line:
+      - author name (bold)
+      - author title/role
+      - optional company
+
+slot_definitions:
+  - QUOTE_TEXT: the quote content
+  - AUTHOR_NAME: attribution name
+  - AUTHOR_TITLE?: role or title
+  - COMPANY?: organization name
+
+hierarchy:
+  blockquote > [quote-icon? + p.quote-text + footer > (name + title? + company?)]
+
+required_elements: [QUOTE_TEXT, AUTHOR_NAME]
+optional_elements: [quote icon, AUTHOR_TITLE, COMPANY, decorative border]
+
+responsive_behavior:
+  - desktop: padded with generous margins
+  - tablet: reduced padding
+  - mobile: full-width with left border accent
+
+image_compatibility: none
+sidebar_compatibility: works in main column or sidebar
+```
+
+---
+
+### BP-183: Warehouse Capacity Table
+
+```
+blueprint_id: bp-warehouse-capacity-table
+blueprint_name: Warehouse Capacity Table
+category: tabular-data
+article_role: Display warehouse or facility capacity data in a structured comparison table
+
+structural_pattern:
+  - section heading (h2)
+  - optional description paragraph
+  - table container (bordered):
+    - table header row (dark/accent background):
+      - columns: Location, Capacity, Utilization, Type, Status
+    - table body rows (alternating stripes):
+      - location name (bold)
+      - capacity metric (number + unit)
+      - utilization bar or percentage
+      - facility type
+      - status badge (active/planned/full)
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - DESCRIPTION?: introductory paragraph
+  - TABLE_HEADERS[]: column header labels
+  - TABLE_ROWS[]: array of {location, capacity, utilization, type, status}
+
+hierarchy:
+  section > [h2 + p? + table-container > table > thead + tbody]
+  tbody > tr*N > td*columns
+
+required_elements: [table with headers and at least 3 data rows]
+optional_elements: [SECTION_HEADING, DESCRIPTION, utilization bars, status badges]
+
+responsive_behavior:
+  - desktop: full table layout
+  - tablet: horizontal scroll
+  - mobile: horizontal scroll or stacked card layout
+
+image_compatibility: none
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-184: Industry Benchmark Table
+
+```
+blueprint_id: bp-industry-benchmark-table
+blueprint_name: Industry Benchmark Table
+category: tabular-data
+article_role: Compare industry benchmarks or KPIs against actual performance
+
+structural_pattern:
+  - section heading (h2)
+  - optional description paragraph
+  - table container (bordered):
+    - table header row:
+      - columns: Metric, Industry Average, Your Performance, Gap, Rating
+    - table body rows:
+      - metric name
+      - industry average value
+      - actual performance value
+      - gap/difference (color-coded: green=above, red=below)
+      - rating indicator (stars, grade, or icon)
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - DESCRIPTION?: introductory paragraph
+  - TABLE_HEADERS[]: column header labels
+  - TABLE_ROWS[]: array of {metric, industry_avg, performance, gap, rating}
+
+hierarchy:
+  section > [h2 + p? + table-container > table > thead + tbody]
+  tbody > tr*N > td*columns
+
+required_elements: [table with headers, at least 4 metrics with benchmark and performance values]
+optional_elements: [SECTION_HEADING, DESCRIPTION, color-coded gaps, rating indicators]
+
+responsive_behavior:
+  - desktop: full table layout
+  - tablet: horizontal scroll
+  - mobile: horizontal scroll or metric cards
+
+image_compatibility: rating icons only
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-185: Hub-and-Spoke Diagram
+
+```
+blueprint_id: bp-hub-spoke-diagram
+blueprint_name: Hub-and-Spoke Diagram
+category: relationship-visualization
+article_role: Display a central concept connected to surrounding related elements
+
+structural_pattern:
+  - section heading (h2)
+  - diagram container (centered):
+    - central hub node (larger, prominent):
+      - hub icon or image
+      - hub label (bold)
+    - spoke connectors (lines radiating outward):
+      - connecting lines from hub to spokes
+    - spoke nodes (arranged in circle around hub):
+      - spoke icon
+      - spoke label
+      - optional spoke description
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - HUB: {icon?, label, description?}
+  - SPOKES[]: array of {icon?, label, description?} (4-8 items)
+
+hierarchy:
+  section > [h2 + diagram > hub-node + connector*N + spoke-node*N]
+  hub-node > [icon? + label]
+  spoke-node > [icon? + label + description?]
+
+required_elements: [HUB with label, at least 4 SPOKES with labels]
+optional_elements: [SECTION_HEADING, icons, descriptions, connector labels]
+
+responsive_behavior:
+  - desktop: circular spoke arrangement around center hub
+  - tablet: reduced spacing, smaller diagram
+  - mobile: vertical list with hub at top
+
+image_compatibility: icons only
+sidebar_compatibility: works in main column only
+```
+
+---
+
+### BP-186: Testimonial Image Banner
+
+```
+blueprint_id: bp-testimonial-image-banner
+blueprint_name: Testimonial Image Banner
+category: social-proof
+article_role: Display a testimonial with a full-width background image and quote overlay
+
+structural_pattern:
+  - banner container (full-width, background image):
+    - dark gradient overlay
+    - content overlay (centered):
+      - large quotation mark icon
+      - testimonial text (large, light color)
+      - attribution row:
+        - author photo (circular avatar)
+        - author name (bold)
+        - author title and company
+      - optional company logo
+
+slot_definitions:
+  - BACKGROUND_IMAGE: banner background image URL
+  - QUOTE_TEXT: testimonial text
+  - AUTHOR_NAME: person's name
+  - AUTHOR_TITLE?: role/title
+  - COMPANY?: company name
+  - AUTHOR_PHOTO?: avatar image URL
+  - COMPANY_LOGO?: logo image URL
+
+hierarchy:
+  banner > [bg-image + gradient + content > (quote-icon + blockquote + attribution)]
+  attribution > [avatar? + name + title? + company?]
+
+required_elements: [BACKGROUND_IMAGE, QUOTE_TEXT, AUTHOR_NAME]
+optional_elements: [AUTHOR_PHOTO, AUTHOR_TITLE, COMPANY, COMPANY_LOGO, quotation icon]
+
+responsive_behavior:
+  - desktop: full-width banner with centered overlay
+  - tablet: reduced height, same layout
+  - mobile: taller banner, text stacked
+
+image_compatibility: requires background image, optional avatar
+sidebar_compatibility: full-width only (breaks out of main column)
+```
+
+---
+
+### BP-187: Freight Rate Comparison Table
+
+```
+blueprint_id: bp-freight-rate-comparison-table
+blueprint_name: Freight Rate Comparison Table
+category: tabular-data
+article_role: Compare freight rates, shipping costs, or logistics pricing across routes or providers
+
+structural_pattern:
+  - section heading (h2)
+  - optional description paragraph
+  - table container (bordered):
+    - table header row (accent background):
+      - columns: Route/Provider, Mode, Weight Range, Rate, Transit Time, Notes
+    - table body rows (alternating stripes):
+      - route or provider name
+      - shipping mode (air, sea, road)
+      - weight range
+      - rate/cost (highlighted)
+      - transit time
+      - additional notes
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - DESCRIPTION?: introductory paragraph
+  - TABLE_HEADERS[]: column header labels
+  - TABLE_ROWS[]: array of {route, mode, weight_range?, rate, transit_time, notes?}
+
+hierarchy:
+  section > [h2 + p? + table-container > table > thead + tbody]
+  tbody > tr*N > td*columns
+
+required_elements: [table with headers, at least 3 route/rate rows]
+optional_elements: [SECTION_HEADING, DESCRIPTION, mode icons, highlighted rates]
+
+responsive_behavior:
+  - desktop: full table layout
+  - tablet: horizontal scroll
+  - mobile: horizontal scroll or card layout
+
+image_compatibility: mode icons only
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-188: Social Share Sidebar
+
+```
+blueprint_id: bp-social-share-sidebar
+blueprint_name: Social Share Sidebar
+category: navigation-utility
+article_role: Provide a sticky social media sharing sidebar alongside article content
+
+structural_pattern:
+  - sticky sidebar container (fixed position, left or right):
+    - share label (vertical text or small heading)
+    - social icon buttons (vertical stack):
+      - each button (circular or square, branded color):
+        - social media icon (LinkedIn, Twitter/X, Facebook, WhatsApp, Email)
+        - optional tooltip with platform name
+    - optional share count badge
+    - optional copy-link button at bottom
+
+slot_definitions:
+  - SHARE_LABEL?: text like "Share" or "Share this"
+  - SOCIAL_LINKS[]: array of {platform, icon, url_template}
+  - COPY_LINK_BUTTON?: boolean
+
+hierarchy:
+  aside.sticky > [label? + icon-stack > button*N + copy-btn?]
+  button > [icon + tooltip?]
+
+required_elements: [at least 3 social media icon buttons]
+optional_elements: [SHARE_LABEL, tooltips, share count, COPY_LINK_BUTTON]
+
+responsive_behavior:
+  - desktop: sticky sidebar, vertical icon stack
+  - tablet: horizontal bar at top or bottom
+  - mobile: horizontal bar fixed at bottom
+
+image_compatibility: social media icons only
+sidebar_compatibility: IS a sidebar element
+```
+
+---
+
+### BP-189: Donut Chart with Legend
+
+```
+blueprint_id: bp-donut-chart-legend
+blueprint_name: Donut Chart with Legend
+category: data-visualization
+article_role: Display proportional data as a donut/ring chart with an adjacent legend
+
+structural_pattern:
+  - section heading (h2)
+  - chart layout (two-column):
+    - left: donut chart (SVG):
+      - circle segments (colored, proportional arcs)
+      - center text (total value or label)
+      - optional percentage labels on segments
+    - right: legend list:
+      - each legend item:
+        - color swatch (matching segment)
+        - category label
+        - value and/or percentage
+
+slot_definitions:
+  - SECTION_HEADING: h2 title
+  - CENTER_TEXT?: total or summary text for donut center
+  - SEGMENTS[]: array of {label, value, percentage?, color} (3-8 items)
+
+hierarchy:
+  section > [h2 + chart-layout > (donut-svg + legend)]
+  donut-svg > [segment-arcs + center-text?]
+  legend > [legend-item*N > (swatch + label + value)]
+
+required_elements: [SVG donut with at least 3 segments, legend with matching items]
+optional_elements: [SECTION_HEADING, CENTER_TEXT, percentage labels on segments]
+
+responsive_behavior:
+  - desktop: side-by-side (chart left, legend right)
+  - tablet: side-by-side with reduced sizes
+  - mobile: chart on top, legend below
+
+image_compatibility: none (SVG-based)
+sidebar_compatibility: works in main column
+```
+
+---
+
+### BP-190: Futurist Quote
+
+```
+blueprint_id: bp-futurist-quote
+blueprint_name: Futurist Quote
+category: emphasis-content
+article_role: Display a forward-looking or visionary quote with futuristic styling
+
+structural_pattern:
+  - quote container (dark/gradient background, padded):
+    - decorative element (geometric shapes, lines, or glow effect)
+    - quote text (large, light-colored, modern font weight)
+    - attribution line:
+      - author name (bold, accent color)
+      - author title/role
+      - optional year or context
+    - optional decorative bottom border or accent line
+
+slot_definitions:
+  - QUOTE_TEXT: visionary/forward-looking quote
+  - AUTHOR_NAME: attribution name
+  - AUTHOR_TITLE?: role, title, or affiliation
+  - CONTEXT?: year, event, or publication
+
+hierarchy:
+  section.futurist-quote > [decorative? + blockquote > (p.quote + footer > attribution)]
+  attribution > [name + title? + context?]
+
+required_elements: [QUOTE_TEXT, AUTHOR_NAME]
+optional_elements: [AUTHOR_TITLE, CONTEXT, decorative elements, gradient background]
+
+responsive_behavior:
+  - desktop: centered with generous padding and decorative elements
+  - tablet: reduced padding, same layout
+  - mobile: full-width, simplified decorative elements
+
+image_compatibility: none
+sidebar_compatibility: works in main column or sidebar
+```

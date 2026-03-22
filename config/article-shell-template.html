@@ -83,7 +83,7 @@
        ================================================================ */
     .article-layout {
       display: grid;
-      grid-template-columns: 1fr 260px;
+      grid-template-columns: 260px 1fr;
       gap: 48px;
       align-items: start;
     }
@@ -106,8 +106,8 @@
     .toc-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
     .toc-sidebar-inner {
-      border-left: 2px solid var(--border);
-      padding-left: 0;
+      border-right: 2px solid var(--border);
+      padding-right: 0;
     }
     .toc-sidebar-label {
       font-family: {{FONT_HEADING}};
@@ -116,7 +116,7 @@
       text-transform: uppercase;
       letter-spacing: 1.2px;
       color: var(--text-light);
-      padding: 0 0 12px 20px;
+      padding: 0 20px 12px 0;
       margin: 0;
     }
     .toc-sidebar-list {
@@ -130,20 +130,20 @@
       font-size: 13px;
       line-height: 1.4;
       color: var(--text-light);
-      padding: 7px 16px 7px 20px;
-      border-left: 2px solid transparent;
-      margin-left: -2px;
+      padding: 7px 20px 7px 16px;
+      border-right: 2px solid transparent;
+      margin-right: -2px;
       transition: all var(--duration) var(--ease);
     }
     .toc-sidebar-list li a:hover {
       color: var(--text-dark);
-      border-left-color: var(--border);
+      border-right-color: var(--border);
     }
     .toc-sidebar-list li a.active {
       color: var(--primary);
       font-weight: 500;
-      border-left-color: var(--primary);
-      background: linear-gradient(90deg, rgba(0,0,0,0.02), transparent);
+      border-right-color: var(--primary);
+      background: linear-gradient(270deg, rgba(0,0,0,0.02), transparent);
     }
 
     /* ================================================================
@@ -645,10 +645,10 @@
        RESPONSIVE
        ================================================================ */
     @media (max-width: 1024px) {
-      .article-layout { grid-template-columns: 1fr 220px; gap: 32px; }
+      .article-layout { grid-template-columns: 220px 1fr; gap: 32px; }
       .toc-sidebar { top: 88px; }
-      .toc-sidebar-list li a { font-size: 12px; padding: 6px 12px 6px 16px; }
-      .toc-sidebar-label { font-size: 10px; padding-left: 16px; }
+      .toc-sidebar-list li a { font-size: 12px; padding: 6px 16px 6px 12px; }
+      .toc-sidebar-label { font-size: 10px; padding-right: 16px; }
     }
     @media (max-width: 768px) {
       .article-layout { grid-template-columns: 1fr; gap: 0; }
@@ -679,13 +679,13 @@
 
     <div class="container-article">
       <div class="article-layout">
+        <aside class="toc-sidebar" id="toc-sidebar" aria-label="Table of Contents">
+          {{ARTICLE_TOC_SIDEBAR}}
+        </aside>
         <div class="article-main">
           {{ARTICLE_TOC_INLINE}}
           {{ARTICLE_CONTENT}}
         </div>
-        <aside class="toc-sidebar" id="toc-sidebar" aria-label="Table of Contents">
-          {{ARTICLE_TOC_SIDEBAR}}
-        </aside>
       </div>
     </div>
   </main>
@@ -892,7 +892,11 @@
               }
             }
           } else {
-            showAuthStatus('error', data.error || 'Something went wrong.');
+            var errMsg = data.error || 'Something went wrong.';
+            if (errMsg.toLowerCase().indexOf('not configured') !== -1) {
+              errMsg = 'Auth service unavailable. Please restart the bridge server with /start-bridge and try again.';
+            }
+            showAuthStatus('error', errMsg);
             btn.textContent = isSignup ? 'Sign Up' : 'Login';
             btn.disabled = false;
           }
@@ -1007,7 +1011,7 @@
 
         // Disable button
         var btn = document.getElementById('edit-generate-btn');
-        btn.textContent = 'Sending...';
+        btn.textContent = 'Applying edit...';
         btn.disabled = true;
 
         // Send to bridge with auth token

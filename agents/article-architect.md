@@ -38,24 +38,38 @@ You receive a DOMAIN LOCK. ALL concepts and architecture must stay within the lo
 
 You receive an ADAPTATION MODE. Respect it:
 - **EXISTING:** Map sections to real component IDs from the project's own inventory
-- **REGISTRY:** Map sections to blueprint IDs from the internal structural component registry (`config/structural-component-registry.md`). This is the DEFAULT mode for most projects. The registry contains 20+ proven blueprints (bp-stats-cards, bp-timeline, bp-faq-accordion, etc.). Use these blueprint IDs in the architecture.
+- **REGISTRY:** Map sections to blueprint IDs from the internal structural component registry (`config/structural-component-registry.md`). This is the DEFAULT mode for most projects. The registry contains **190 content blueprints** across 20+ categories. You MUST read the full registry file to discover all available blueprints. Use these blueprint IDs (bp-XXX) in the architecture.
 - **FALLBACK:** Same as registry mode, but the shell is also generated from internal defaults
 
-**Internal Registry Available Blueprints:**
+**CRITICAL — Dynamic Blueprint Discovery:**
+
+You MUST read `config/structural-component-registry.md` at the start of Phase 2 to discover ALL available blueprints. Do NOT rely on any memorized or cached list — the registry is the single source of truth and may have been updated.
 
 Structural (used automatically — do not assign to content sections):
 `bp-article-shell` (page wrapper), `bp-hero` (hero section), `bp-article-prose` (default prose block)
 
-Content (assign to sections in the architecture):
-`bp-stats-cards`, `bp-comparison-table`, `bp-step-process`, `bp-pull-quote`, `bp-data-table`, `bp-before-after`, `bp-highlight-callout`, `bp-key-takeaways`, `bp-checklist`, `bp-timeline`, `bp-section-heading`, `bp-numbered-list`, `bp-callout`, `bp-image-caption`, `bp-faq-accordion`, `bp-feature-grid`, `bp-problem-solution`, `bp-inline-cta`, `bp-two-col-text`, `bp-mini-cards`
+Content blueprints: **190 blueprints** organized by category. Read the registry to see all of them.
 
-**Topic-Aware Blueprint Selection:**
-- Data-heavy topics → prefer bp-stats-cards, bp-data-table, bp-comparison-table, bp-highlight-callout
-- How-to / Guide → prefer bp-step-process, bp-checklist, bp-callout, bp-numbered-list
-- Historical / Narrative → prefer bp-timeline, bp-pull-quote, bp-image-caption, bp-section-heading
-- Comparison / Review → prefer bp-before-after, bp-comparison-table, bp-mini-cards, bp-problem-solution
-- Feature / Product → prefer bp-feature-grid, bp-mini-cards, bp-inline-cta, bp-highlight-callout
-- FAQ / Informational → prefer bp-faq-accordion, bp-key-takeaways, bp-callout, bp-two-col-text
+**Topic-Aware Blueprint Selection (by CATEGORY):**
+
+When selecting blueprints, filter by the `category` field in the registry. Each topic type maps to preferred categories:
+
+- Data-heavy topics → prefer categories: `data-visualization`, `data-display`, `tabular-data`
+- How-to / Guide → prefer categories: `sequential-content`, `actionable-content`, `process-flow`
+- Historical / Narrative → prefer categories: `chronological-content`, `editorial`, `typography`
+- Comparison / Review → prefer categories: `comparison`, `feature-display`, `data-visualization`
+- Feature / Product → prefer categories: `feature-display`, `feature-showcase`, `conversion`
+- FAQ / Informational → prefer categories: `interactive`, `interactive-content`, `summary`
+- Visual / Storytelling → prefer categories: `media`, `visual-content`, `social-proof`
+- Emphasis / Quotes → prefer categories: `emphasis-content`, `editorial`
+- Navigation / Meta → prefer categories: `navigation`, `navigation-utility`, `trust`
+- Relationship / Architecture → prefer categories: `relationship-visualization`, `process-flow`
+
+**Selection rules:**
+- Browse the FULL registry — do not default to the first few blueprints
+- For each section, scan ALL blueprints in the matching category and pick the best fit
+- Prioritize blueprints you haven't used in recent articles (see "Blueprint Variation" below)
+- Mix blueprints from DIFFERENT categories to create visual variety
 
 ## Phase Detection
 

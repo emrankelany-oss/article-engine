@@ -133,7 +133,7 @@ Show these at the start of each phase:
 - **Image Generation Fallback Handler** — handles graceful degradation when ALL resolution strategies fail (placeholder HTML + exported prompts). Only activates after the full resolver chain has been exhausted.
 
 ### Structural Component Memory Modules (v4.3)
-- **Structural Component Registry** — internal registry of 20+ normalized component blueprints extracted from article-components.html. Stores STRUCTURE ONLY (layout, slots, hierarchy, relationships) — no brand colors, fonts, or visual identity. Located at `config/structural-component-registry.md`.
+- **Structural Component Registry** — internal registry of 190 normalized content blueprints (plus shell, hero, prose structural blueprints) extracted from article-components.html. Stores STRUCTURE ONLY (layout, slots, hierarchy, relationships) — no brand colors, fonts, or visual identity. Located at `config/structural-component-registry.md`. Agents MUST read this file dynamically — never rely on a hardcoded blueprint list.
 - **Article Shell Registry** — internal blueprint for the article page shell structure (two-column layout, hero placement, sidebar, TOC). Stored within the structural component registry.
 - **Blueprint-to-Project Mapper** — maps internal structural blueprints to the active project's visual language at runtime. Takes a blueprint ID + project design tokens → outputs styled HTML.
 - **Runtime Visual Adapter** — applies the active project's design tokens (colors, fonts, spacing, radii, shadows) on top of structural blueprints. Never uses frozen brand values from the source project.
@@ -143,19 +143,23 @@ Show these at the start of each phase:
 
 ## STRUCTURAL COMPONENT MEMORY
 
-The skill carries an **internal structural component registry** (`config/structural-component-registry.md`) containing 20+ normalized component blueprints plus article shell and hero patterns.
+The skill carries an **internal structural component registry** (`config/structural-component-registry.md`) containing **190 content blueprints** plus 3 structural blueprints (article shell, hero, prose).
 
 ### Key Properties
 - **Structure only** — no brand colors, fonts, or visual identity stored
 - **Portable** — works in any project without external files
 - **Runtime-adapted** — visual styling applied from the active project's design tokens
 - **Topic-aware** — component composition varies by topic type
+- **190 content blueprints** — organized by category (data-visualization, media, sequential-content, comparison, editorial, interactive, actionable-content, summary, typography, navigation, trust, feature-display, conversion, content-layout, chronological-content, tabular-data, process-flow, emphasis-content, feature-showcase, visual-content, social-proof, data-display, interactive-content, relationship-visualization, navigation-utility)
 
 ### Source
 One-time ingestion from `article-components.html`. The registry is now self-contained within the skill. The original file is NOT required at runtime.
 
-### Blueprint IDs Available
-`bp-article-shell`, `bp-hero`, `bp-article-prose`, `bp-stats-cards`, `bp-comparison-table`, `bp-step-process`, `bp-pull-quote`, `bp-data-table`, `bp-before-after`, `bp-highlight-callout`, `bp-key-takeaways`, `bp-checklist`, `bp-timeline`, `bp-section-heading`, `bp-numbered-list`, `bp-callout`, `bp-image-caption`, `bp-faq-accordion`, `bp-feature-grid`, `bp-problem-solution`, `bp-inline-cta`, `bp-two-col-text`, `bp-mini-cards`
+### Blueprint Discovery
+The registry file is the **single source of truth** for available blueprints. Agents MUST read `config/structural-component-registry.md` dynamically to discover all blueprint IDs — never rely on a hardcoded list. The registry may be updated with new blueprints at any time.
+
+Structural (auto-used): `bp-article-shell`, `bp-hero`, `bp-article-prose`
+Content: 190 blueprints from BP-01 through BP-190 — read the registry file for the full list.
 
 ### Runtime Flow
 1. Article Architect reads the structural registry and selects blueprints for each section
@@ -629,66 +633,45 @@ Also generate 4-6 IMAGE PROMPTS for Gemini image generation (see image planning 
 
 ## STEP 9B — BLUEPRINT HISTORY SCAN (automatic)
 
-Before dispatching the architect, scan the project for existing article files to detect which blueprints have already been used. This ensures every new article gets different components.
+Before dispatching the architect, scan the project for existing article files to detect which blueprints have already been used. This ensures every new article gets structurally different components.
 
-**IMPORTANT:** The draft-writer does NOT embed `bp-XXX` IDs in the generated HTML. It translates blueprints into real HTML with class names like `stats-cards`, `timeline-section`, `faq-accordion`, etc. So you must grep for the **rendered class names**, then map them back to blueprint IDs.
+**How it works:** The draft-writer embeds a `data-blueprint="bp-xxx"` attribute on every section wrapper in the generated HTML. This makes detection simple and reliable — no class-name guessing or mapping tables needed. The scan works for ALL 190 blueprints automatically.
 
 **Process:**
 
 1. Glob for `article-*.html` in the project root (and common subdirectories like `blog/`, `pages/`, `posts/`)
-2. For each article file found, run this Bash command to extract component fingerprints:
+2. For each article file found, extract all blueprint IDs using this Grep:
 
 ```bash
-grep -oiE '(stats-cards|comparison-table|step-process|pull-quote|data-table|before-after|highlight-callout|key-takeaways|checklist|timeline|section-heading|numbered-list|callout|image-caption|faq-accordion|feature-grid|problem-solution|inline-cta|two-col-text|mini-cards)' "<ARTICLE_FILE>" | sort -u
+grep -oE 'data-blueprint="bp-[a-z0-9-]+"' "<ARTICLE_FILE>" | sed 's/data-blueprint="//;s/"//' | sort -u
 ```
 
-3. Map each matched class name back to its blueprint ID using this table:
+This directly extracts blueprint IDs like `bp-stats-cards`, `bp-donut-chart-legend`, `bp-hub-spoke-diagram`, etc.
 
-| Class name found in HTML | Blueprint ID |
-|---|---|
-| `stats-cards` | bp-stats-cards |
-| `comparison-table` | bp-comparison-table |
-| `step-process` | bp-step-process |
-| `pull-quote` | bp-pull-quote |
-| `data-table` | bp-data-table |
-| `before-after` | bp-before-after |
-| `highlight-callout` | bp-highlight-callout |
-| `key-takeaways` | bp-key-takeaways |
-| `checklist` | bp-checklist |
-| `timeline` | bp-timeline |
-| `section-heading` | bp-section-heading |
-| `numbered-list` | bp-numbered-list |
-| `callout` | bp-callout |
-| `image-caption` | bp-image-caption |
-| `faq-accordion` | bp-faq-accordion |
-| `feature-grid` | bp-feature-grid |
-| `problem-solution` | bp-problem-solution |
-| `inline-cta` | bp-inline-cta |
-| `two-col-text` | bp-two-col-text |
-| `mini-cards` | bp-mini-cards |
-
-4. Also check for `data-section-type` attributes which directly name the component type:
+3. If the `data-blueprint` grep finds ZERO matches, the article may be older (pre-v4.6.6) or manually written. As a fallback, try the `data-section-type` attribute:
 ```bash
 grep -oE 'data-section-type="[^"]*"' "<ARTICLE_FILE>" | sort -u
 ```
+Note these as approximate matches only — `data-section-type` contains section types (e.g., "content-block"), not blueprint IDs.
 
-5. Combine all findings per article file.
+4. Combine all findings per article file.
 
 **Output:**
 ```
 PREVIOUSLY USED BLUEPRINTS:
-- article-{slug1}.html: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table
-- article-{slug2}.html: bp-feature-grid, bp-checklist, bp-faq-accordion, bp-mini-cards
-Combined unique: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, bp-feature-grid, bp-checklist, bp-faq-accordion, bp-mini-cards
-Remaining unused: bp-step-process, bp-data-table, bp-before-after, bp-highlight-callout, bp-key-takeaways, bp-numbered-list, bp-callout, bp-image-caption, bp-problem-solution, bp-inline-cta, bp-two-col-text, bp-section-heading
+- article-{slug1}.html: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, bp-donut-chart-legend
+- article-{slug2}.html: bp-feature-grid, bp-checklist, bp-faq-accordion, bp-hub-spoke-diagram, bp-gauge-chart
+Combined unique: bp-stats-cards, bp-timeline, bp-pull-quote, bp-comparison-table, bp-donut-chart-legend, bp-feature-grid, bp-checklist, bp-faq-accordion, bp-hub-spoke-diagram, bp-gauge-chart
+Total used: 10 of 190 available
 ```
 
 If no existing articles found, output:
 ```
 PREVIOUSLY USED BLUEPRINTS: none (first article in project)
+Total used: 0 of 190 available
 ```
 
-**CRITICAL:** If the grep finds ZERO matches in an existing article, that article may have been written manually (not by the plugin) or uses non-standard class names. Skip it and note: `article-{slug}.html: no blueprint fingerprints detected (manual/external article)`.
+**CRITICAL:** The "Total used: X of 190" line helps the architect understand how much of the registry is still untapped. With 190 blueprints available, there should be massive variety across articles.
 
 Store this for the architect dispatch.
 

@@ -56,7 +56,7 @@ Override any value to customize behavior. Leave as `auto` or `__PLACEHOLDER__` f
 ### Registry Settings
 - registry_file: config/structural-component-registry.md
 - registry_source: article-components.html (one-time ingestion, not needed at runtime)
-- total_blueprints: 173 (170 components + hero + shell + prose)
+- total_blueprints: 193 (190 content blueprints + hero + shell + prose)
 - stores_structure_only: true
 - stores_visual_identity: false
 
@@ -412,7 +412,7 @@ Images are always saved relative to the CURRENT project root:
 ### Section ID Stability Check
 - verify_stable_ids: true
 - id_pattern: section-{N}
-- required_data_attributes: [data-section-id, data-section-type, data-section-role]
+- required_data_attributes: [data-section-id, data-section-type, data-section-role, data-blueprint]
 
 ### Section Edit Scope Check
 - verify_scope_limit: true
