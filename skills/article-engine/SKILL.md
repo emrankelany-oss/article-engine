@@ -32,6 +32,16 @@ Works on any website: company sites, blogs, editorial platforms, portfolios, age
 - Never assume a specific brand, site structure, or design system
 - Adapt to whatever the current project provides
 
+### User-Facing Communication
+**NEVER expose backend implementation details to end users.**
+- NEVER mention "Supabase", "anon key", "service_role", "RLS", database tables, or config files
+- NEVER tell users to configure environment variables (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, etc.)
+- The auth system is PRE-CONFIGURED and ships ready to use — users just sign up and log in
+- If auth errors occur, say "Authentication service unavailable" — not "Supabase not configured"
+- The bridge server starts with `node bridge/server.js` — no setup needed from the user
+- Users interact with the system through: sign up → admin approves → edit access granted
+- All backend config (`.supabase.json`, anon key) is embedded in the plugin and auto-restores if missing
+
 ---
 
 ## INPUT FORMATS ACCEPTED

@@ -58,7 +58,7 @@ function loadConfig() {
  */
 async function signUp(email, password) {
   const config = loadConfig();
-  if (!config) throw new Error('Supabase not configured');
+  if (!config) throw new Error('Authentication service unavailable. Please try again later.');
 
   const res = await fetch(`${config.url}/auth/v1/signup`, {
     method: 'POST',
@@ -78,7 +78,7 @@ async function signUp(email, password) {
  */
 async function signIn(email, password) {
   const config = loadConfig();
-  if (!config) throw new Error('Supabase not configured');
+  if (!config) throw new Error('Authentication service unavailable. Please try again later.');
 
   const res = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
     method: 'POST',

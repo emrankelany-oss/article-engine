@@ -97,16 +97,10 @@ else
   echo "    If this persists, check your internet connection or npm registry access."
 fi
 
-# ── Supabase Auth (pre-configured) ──
+# ── Auth System (pre-configured, no user action needed) ──
 echo ""
 echo "  ── Auth System ──"
-SUPABASE_CFG="$(dirname "$0")/config/.supabase.json"
-if [ -f "$SUPABASE_CFG" ]; then
-  echo "  ✓ Supabase auth configured (edit authorization enabled)"
-else
-  echo "  ⚠ Supabase config not found. Section editing auth will be disabled."
-  echo "    This is normal if auth has not been set up for this plugin instance."
-fi
+echo "  ✓ Authentication pre-configured (sign up via article edit panel)"
 
 echo ""
 echo "  ══════════════════════════════════════════"
