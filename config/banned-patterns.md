@@ -51,6 +51,9 @@
 
 ## Domain Drift Patterns (CRITICAL)
 
+> Domain integrity: Follow rules in config/domain-integrity.md (single authority).
+> The patterns below are the specific banned phrasings enforced by that authority.
+
 These patterns indicate the article is being forced into the website's industry.
 If the topic is NOT about the website's industry, these are BANNED:
 

@@ -32,7 +32,7 @@ Process the edit using the autonomous-article-engine skill's Section Edit Mode:
 3. Locate the target section by its `data-section-id`
 4. Read surrounding sections for context
 5. Rewrite the section following the edit rules:
-   - Preserve topic domain integrity
+   - Preserve topic domain integrity (see config/domain-integrity.md)
    - Preserve page style and component compatibility
    - Improve the section intelligently and professionally
    - Keep the result aligned with the rest of the article

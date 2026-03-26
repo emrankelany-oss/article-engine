@@ -13,6 +13,19 @@ config/.blueprint-history.json
 # Bridge server PID
 .claude-bridge-pid
 
+# Bridge error logs and notifications (runtime)
+.bridge-errors.log
+.bridge-errors.log.1
+.bridge-notifications.json
+
+# Claude Code local settings (secrets, API keys)
+.claude/settings.local.json
+
+# Environment variables (secrets)
+.env
+.env.local
+.env.production
+
 # Node modules
 node_modules/
 

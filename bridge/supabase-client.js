@@ -11,11 +11,11 @@ const path = require('path');
 let _config = null;
 let _configMtime = 0;
 
-// Default Supabase config (public anon key — safe to embed, RLS-protected).
-// Used as fallback when .supabase.json is missing (e.g. after plugin update).
+// Default Supabase config — reads from environment variables first, then falls back
+// to the embedded public anon key (safe to embed, RLS-protected).
 const DEFAULT_CONFIG = {
-  url: 'https://vyljszbmbortwhbzqywj.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bGpzemJtYm9ydHdoYnpxeXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTQxNTEsImV4cCI6MjA4OTE3MDE1MX0.sAyfmC2LXpJ9OlxibY0VOGxsety9U8s4QTitw5J7U7Q'
+  url: process.env.SUPABASE_URL || 'https://vyljszbmbortwhbzqywj.supabase.co',
+  anonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5bGpzemJtYm9ydHdoYnpxeXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTQxNTEsImV4cCI6MjA4OTE3MDE1MX0.sAyfmC2LXpJ9OlxibY0VOGxsety9U8s4QTitw5J7U7Q'
 };
 
 /**
@@ -94,6 +94,23 @@ async function signIn(email, password) {
 }
 
 /**
+ * Sign out (invalidate the token on Supabase)
+ */
+async function signOut(token) {
+  const config = loadConfig();
+  if (!config) throw new Error('Authentication service unavailable.');
+
+  const res = await fetch(`${config.url}/auth/v1/logout`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'apikey': config.anonKey
+    }
+  });
+  if (!res.ok) throw new Error('Failed to invalidate session.');
+}
+
+/**
  * Verify an access token and return the user
  */
 async function verifyToken(token) {
@@ -156,44 +173,46 @@ async function logUsage(token, userId, action, articleFile) {
 }
 
 /**
- * Count today's usage for a user
+ * Log an admin action to usage_logs using service_role key
  */
-async function getTodayUsageCount(token, userId, action) {
+async function logAdminAction(adminUserId, action, targetUserId) {
   const config = loadConfig();
-  if (!config) return 0;
+  const adminConfig = loadAdminConfig();
+  if (!config || !adminConfig) return false;
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const res = await fetch(
-    `${config.url}/rest/v1/usage_logs?user_id=eq.${userId}&action=eq.${action}&created_at=gte.${todayStart.toISOString()}&select=id`,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'apikey': config.anonKey,
-        'Prefer': 'count=exact'
-      }
-    }
-  );
-  if (!res.ok) return 0;
-  const count = res.headers.get('content-range');
-  if (count) {
-    const match = count.match(/\/(\d+)/);
-    return match ? parseInt(match[1], 10) : 0;
-  }
-  const rows = await res.json();
-  return rows.length;
+  const res = await fetch(`${config.url}/rest/v1/usage_logs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': adminConfig.serviceRoleKey,
+      'Authorization': 'Bearer ' + adminConfig.serviceRoleKey,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({
+      user_id: adminUserId,
+      action: action,
+      article_file: targetUserId || null
+    })
+  });
+  return res.ok;
 }
 
 // ── ADMIN FUNCTIONS (use service_role key from .supabase.json) ──
 
 /**
  * Load admin config (service_role key)
- * Falls back to null if not configured
+ * Reads from SUPABASE_SERVICE_ROLE_KEY env var first, falls back to .supabase-admin.json file.
  */
 let _adminConfig = null;
 let _adminConfigMtime = 0;
 function loadAdminConfig() {
+  // Prefer environment variable (secure — no disk persistence)
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    _adminConfig = { serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
+    return _adminConfig;
+  }
+
+  // Fall back to file-based config (legacy — will be deprecated)
   const configPath = path.join(__dirname, '..', 'config', '.supabase-admin.json');
   if (!fs.existsSync(configPath)) {
     _adminConfig = null;
@@ -379,10 +398,11 @@ module.exports = {
   loadConfig,
   signUp,
   signIn,
+  signOut,
   verifyToken,
   getSubscription,
   logUsage,
-  getTodayUsageCount,
+  logAdminAction,
   loadAdminConfig,
   adminGetSubscription,
   adminListUsers,

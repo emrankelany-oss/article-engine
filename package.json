@@ -1,15 +1,26 @@
 {
   "name": "article-engine",
-  "version": "4.6.6",
+  "version": "4.7.0",
   "description": "Autonomous article generation engine for Claude Code",
   "private": true,
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "bridge": "node bridge/server.js"
+    "bridge": "node bridge/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint bridge/",
+    "format": "prettier --write bridge/",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "author": "emrankelany-oss <emran.kealny@gmail.com>",
   "license": "MIT",
-  "homepage": "https://github.com/emrankelany-oss/article-engine"
+  "homepage": "https://github.com/emrankelany-oss/article-engine",
+  "devDependencies": {
+    "eslint": "^10.1.0",
+    "prettier": "^3.8.1",
+    "vitest": "^4.1.1"
+  }
 }

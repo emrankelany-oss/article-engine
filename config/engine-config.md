@@ -21,6 +21,9 @@ Override any value to customize behavior. Leave as `auto` or `__PLACEHOLDER__` f
 
 ## Domain Integrity
 
+> **Single authority:** See `config/domain-integrity.md` for all domain integrity rules.
+> Settings below are the config values referenced by that authority file.
+
 ### Classification
 - classify_before_research: true
 - domain_lock_enforcement: strict

@@ -1,0 +1,24 @@
+#!/bin/sh
+# Pre-commit hook: lint and test before allowing commit
+# Install: git config core.hooksPath .githooks
+# Or: npm run prepare
+
+echo "Running pre-commit checks..."
+
+# Lint
+echo "  Linting..."
+npx eslint bridge/ --quiet
+if [ $? -ne 0 ]; then
+  echo "  ✗ Lint failed. Fix errors before committing."
+  exit 1
+fi
+
+# Tests
+echo "  Testing..."
+npx vitest run --reporter=dot 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo "  ✗ Tests failed. Fix failures before committing."
+  exit 1
+fi
+
+echo "  ✓ All checks passed."
